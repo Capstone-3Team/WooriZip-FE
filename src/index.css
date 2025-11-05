@@ -1,0 +1,14 @@
+/* Tailwind v4: configless 기본 사용 */
+@import "tailwindcss";
+
+/* 앱 전체 높이 확보 (레이아웃 편의) */
+html,
+body,
+#root {
+  height: 100%;
+}
+
+/* 필요 시 커스텀 스타일을 여기에 추가
+   예: 유틸리티로 반복되는 스타일을 만들고 싶다면 @theme/@utility 사용
+   (v4에서는 별도의 postcss/tailwind.config 없이도 동작)
+*/
