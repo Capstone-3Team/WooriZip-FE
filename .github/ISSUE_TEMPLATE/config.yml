@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Q&A
+    url: https://github.com/CampusCatch/campuscatch-fe/discussions
+    about: 질문은 Discussion 탭에 남겨주세요.
