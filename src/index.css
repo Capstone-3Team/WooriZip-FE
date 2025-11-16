@@ -1,6 +1,23 @@
 /* Tailwind v4: configless 기본 사용 */
 @import "tailwindcss";
 
+@theme {
+  /* 앱 전체 배경 */
+  --color-bg-app: #fff9e6;
+
+  /* 메인 노랑 */
+  --color-yellow-main: #fdcd46;
+  --color-yellow-60: #fedf86;
+  --color-yellow-40: #fee7a6;
+  --color-yellow-20: #fff0c6;
+
+  /* 강조색 (다홍) */
+  --color-accent: #fa6255;
+
+  /* 기본 글자색 */
+  --color-text-main: #351213;
+}
+
 /* 앱 전체 높이 확보 (레이아웃 편의) */
 html,
 body,
