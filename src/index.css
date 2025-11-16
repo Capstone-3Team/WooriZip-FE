@@ -1,7 +1,12 @@
 /* Tailwind v4: configless 기본 사용 */
 @import "tailwindcss";
+@import "pretendard/dist/web/static/pretendard.css";
 
 @theme {
+  /* 폰트 패밀리 */
+  --font-sans: "Pretendard", system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+
   /* 앱 전체 배경 */
   --color-bg-app: #fff9e6;
 
