@@ -23,6 +23,17 @@
   --color-text-main: #351213;
 }
 
+@layer utilities {
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    /* 표준 + webkit 둘 다 */
+    line-clamp: 2;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+  }
+}
+
 /* 앱 전체 높이 확보 (레이아웃 편의) */
 html,
 body,
