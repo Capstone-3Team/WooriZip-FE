@@ -1,15 +1,76 @@
-export default function App() {
+import { useEffect, useState } from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
+
+import FirstLoading from "@/pages/FirstLoading";
+import Splash from "@/pages/Splash";
+import Login from "@/pages/Login";
+import SendEmail from "@/pages/SendEmail";
+import ResetPassword from "@/pages/ResetPassword";
+import WeekAnswer from "@/pages/WeekAnswer";
+
+// 로그인 여부를 판단하는 함수 (임시 버전)
+function checkIsLoggedIn() {
+  // 예: 로그인 성공 시 localStorage.setItem("isLoggedIn", "true") 해두고,
+  // 여기서 그 값을 읽어와서 판단
+  const flag = localStorage.getItem("isLoggedIn");
+  return flag === "true";
+}
+
+function App() {
+  // 최초 로딩(로고 화면) 단계인지 여부
+  const [isBooting, setIsBooting] = useState(true);
+  // 로그인 상태
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    // 앱이 처음 켜졌을 때만 실행
+    const timer = setTimeout(() => {
+      const loggedIn = checkIsLoggedIn();
+      setIsLoggedIn(loggedIn);
+      setIsBooting(false); // 이제 라우팅 시작
+    }, 1200); // 1.2초 정도 로고 보여주기 (원하면 숫자 조절)
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  // 1단계: 최초 로딩 화면
+  if (isBooting) {
+    return <FirstLoading />;
+  }
+
+  // 2단계: 라우팅
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="rounded-2xl border border-black/5 bg-white p-8 shadow-sm">
-        <h1 className="text-2xl font-bold">WooriZip FE (JS)</h1>
-        <p className="mt-2 text-gray-600">
-          Vite + React + Tailwind v4 (configless)
-        </p>
-        <button className="mt-4 rounded-lg px-4 py-2 bg-blue-600 text-white hover:opacity-90">
-          Hello
-        </button>
-      </div>
-    </main>
+    <Routes>
+      {/* 루트(/)로 왔을 때: 로그인 여부에 따라 분기 */}
+      <Route
+        path="/"
+        element={
+          isLoggedIn ? <Navigate to="/week-answer" replace /> : <Splash />
+        }
+      />
+
+      {/* 스플래시 후 로그인 진입 경로 */}
+      <Route path="/login" element={<Login />} />
+
+      {/* 스플래시를 직접 보고 싶을 때를 위해 경로 하나 더 남겨두기 */}
+      <Route path="/splash" element={<Splash />} />
+
+      {/* 메인 페이지(주차별 답변 목록) */}
+      <Route path="/week-answer" element={<WeekAnswer />} />
+
+      {/* 비밀번호 재설정 - 이메일 전송 페이지 */}
+      <Route path="/send-email" element={<SendEmail />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
+
+      {/* 그 외 모든 경로 → 로그인 상태에 따라 기본 경로로 리다이렉트 */}
+      <Route
+        path="*"
+        element={
+          <Navigate to={isLoggedIn ? "/week-answer" : "/splash"} replace />
+        }
+      />
+    </Routes>
   );
 }
+
+export default App;

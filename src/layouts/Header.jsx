@@ -1,5 +1,3 @@
-import React from "react";
-
 function Header({
   // "solid" = 아이콘 + 가운데 제목 + 배경
   // "plain" = 배경 없이, 왼쪽에만 큰 텍스트
@@ -10,7 +8,7 @@ function Header({
   // 왼쪽 아이콘 & 동작 (뒤로가기, 닫기, 필터 등)
   leftIcon,
   onLeftClick,
-  leftAriaLabel = "뒤로가기", // 용도에 맞게 "닫기", "필터 열기" 등으로 덮어써줘도 됨
+  leftAriaLabel = "", // 용도에 맞게 "뒤로가기", "닫기", "필터 열기" 등
 
   // (옵션) 오른쪽 아이콘 & 동작 (추가 액션용)
   rightIcon,
@@ -18,8 +16,8 @@ function Header({
   rightAriaLabel,
 
   // 스타일 커스터마이징용
-  bgClassName = "bg-yellow-20", // 1번 헤더 배경 색
-  titleClassName = "text-base font-semibold", // 제목추가 클래스: 글자 크기/굵기/색
+  bgClassName = "bg-app", // 1번 헤더 배경 색
+  titleClassName = "text-lg font-semibold", // 제목추가 클래스: 글자 크기/굵기/색
   iconWrapperClassName = "w-8 h-8 flex items-center justify-center", // 아이콘 영역 크기
 }) {
   // 공통: 가로 전체, 좌우 여백 px-4, flex로 내부를 수평 배치, 가운데 정렬, 세로 높이 h-12

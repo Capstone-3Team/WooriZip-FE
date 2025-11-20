@@ -1,5 +1,3 @@
-import React from "react";
-
 function SlideIndicator({ total, currentIndex = 0, className = "" }) {
   if (!total || total <= 1) return null; // 0장 or 1장일 땐 인디케이터 안 보여줘도 됨
 
@@ -14,7 +12,7 @@ function SlideIndicator({ total, currentIndex = 0, className = "" }) {
             className={
               "h-1.5 rounded-full transition-all duration-150 " +
               (isActive
-                ? "w-4 bg-yellow-main" // 활성: 길고 노랑
+                ? "w-6 bg-yellow-main" // 활성: 길고 노랑
                 : "w-1.5 bg-gray-20") // 비활성: 짧고 연한 회색
             }
           />
