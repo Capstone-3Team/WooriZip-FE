@@ -47,7 +47,7 @@ function TextInput({
 
   // 기본 필드 스타일
   const baseFieldClass =
-    "w-full rounded-xl border bg-bg-app px-3 text-sm text-text-main placeholder:text-gray-40 focus:outline-none";
+    "w-full rounded-lg border bg-bg-app px-3 text-sm text-text-main placeholder:text-gray-40 focus:outline-none";
 
   // 상태별 border / 배경 / 텍스트
   let stateClass = "border-gray-20 focus:border-yellow-main";
@@ -65,7 +65,7 @@ function TextInput({
       "focus:border-yellow-main focus:text-text-main focus:placeholder:text-gray-40";
   }
 
-  const singleLineClass = "h-11"; // 버튼과 동일 높이
+  const singleLineClass = "h-13"; // 버튼과 동일 높이
   const multiLineClass = "py-3 min-h-[120px] resize-none";
 
   const renderField = () => {
@@ -113,8 +113,11 @@ function TextInput({
             tabIndex={isReadOnly ? -1 : 0}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-60 text-xs"
           >
-            {showPassword ? "숨기기" : "보기"}
-            {/* 나중에 여기 아이콘 SVG로 교체 가능 */}
+            {showPassword ? (
+              <img src="/icons/eye.svg" />
+            ) : (
+              <img src="/icons/eye-off.svg" />
+            )}
           </button>
         </div>
       );
@@ -138,11 +141,11 @@ function TextInput({
 
   const renderBottomText = () => {
     if (isError && errorMessage) {
-      return <p className="mt-1 text-xs text-accent">{errorMessage}</p>;
+      return <p className="mt-1 ml-2 text-xs text-accent">{errorMessage}</p>;
     }
 
     if (supportingText) {
-      return <p className="mt-1 text-xs text-gray-60">{supportingText}</p>;
+      return <p className="mt-1 ml-2 text-xs text-gray-60">{supportingText}</p>;
     }
 
     return null;
