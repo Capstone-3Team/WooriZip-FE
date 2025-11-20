@@ -1,4 +1,3 @@
-import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 // 프로젝트에 맞게 아이콘 경로 / 라우트 경로 바꿔서 쓰면 됨
@@ -34,11 +33,11 @@ function BottomNav() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // 헤더랑 비슷하게: w-full px-4 flex
+  // 헤더랑 비슷하게: w-full px-8 flex
   // 고정 위치: fixed bottom-0 left-0 right-0
   const containerClass =
-    "fixed bottom-0 left-0 right-0 bg-bg-app border-t border-gray-200";
-  const innerClass = "w-full px-4 h-20 flex items-center"; // 높이 적당히 80px 정도
+    "fixed bottom-0 left-0 right-0 bg-gray-20 border-t border-gray-200";
+  const innerClass = "w-full px-8 h-20 flex items-center"; // 높이 적당히 80px 정도
 
   return (
     <nav className={containerClass}>
@@ -48,8 +47,8 @@ function BottomNav() {
             // 하위 경로(/video/detail 같은 것)도 활성으로 보고 싶으면 startsWith 사용
             const isActive = location.pathname.startsWith(item.path);
 
-            const activeColor = "text-accent";
-            const inactiveColor = "text-text-main";
+            const activeColor = "text-text-main";
+            const inactiveColor = "text-gray-60";
 
             return (
               <li key={item.path} className="flex-1">
