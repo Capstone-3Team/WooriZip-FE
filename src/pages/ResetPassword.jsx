@@ -72,8 +72,8 @@ function ResetPassword() {
       />
 
       {/* 본문 */}
-      <main className="flex-1 px-6 pt-6 pb-8">
-        <form className="flex flex-col h-full" onSubmit={handleSubmit}>
+      <main className="flex-1 flex flex-col px-6 pt-6 pb-8">
+        <form className="flex flex-col flex-1" onSubmit={handleSubmit}>
           <section>
             <h1 className="text-xl font-semibold text-text-main mb-6">
               신규 비밀번호를 입력해주세요
@@ -109,7 +109,9 @@ function ResetPassword() {
           </section>
 
           {/* 하단 버튼 */}
-          <div className="mt-5">
+          {/* 버튼을 감싼 div에 mt-auto 
+          → 남는 공간을 전부 위로 밀어서 버튼이 항상 아래 + pb-8만큼 위에 위치 */}
+          <div className="mt-auto">
             <Button size="large" variant={submitVariant} type="submit">
               변경 완료
             </Button>
