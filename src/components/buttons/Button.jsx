@@ -11,19 +11,19 @@ function Button({
 }) {
   // 모든 버튼 공통: 같은 높이 + 둥근 모서리 + 기본 border
   const baseClass =
-    "inline-flex h-11 items-center justify-center rounded-xl border font-medium transition-colors duration-150";
+    "inline-flex h-13 items-center justify-center rounded-lg border font-semibold transition-colors duration-150";
 
-  // 크기별: 가로 폭 / 폰트 크기만 달라짐 (높이는 h-11로 고정)
+  // 크기별: 가로 폭 / 폰트 크기만 달라짐 (높이는 h-13로 고정)
   let sizeClass = "";
   if (size === "large") {
     // 넓은 CTA 버튼 (w-full)
-    sizeClass = "w-full px-4 text-base";
+    sizeClass = "w-full px-4 text-md";
   } else if (size === "medium") {
     // 토글 / 중간 버튼 (flex-1로 나열)
-    sizeClass = "px-4 text-sm";
+    sizeClass = "px-8 text-md";
   } else if (size === "small") {
     // input 옆 작은 버튼
-    sizeClass = "px-3 text-sm";
+    sizeClass = "px-4 text-md";
   }
 
   // 색/스타일
