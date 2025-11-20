@@ -28,6 +28,38 @@
   --color-gray-20: #e0e0e0;
 }
 
+@layer components {
+  /* 말풍선 모양 + 꼬리 - 왼쪽 */
+  .bubble-left {
+    @apply relative rounded-2xl bg-yellow-40 p-3;
+  }
+  /* 말풍선 모양 + 꼬리 - 오른쪽 */
+  .bubble-right {
+    @apply relative rounded-2xl bg-yellow-60 p-3;
+  }
+
+  .bubble-left::after,
+  .bubble-right::after {
+    content: "";
+    position: absolute;
+    bottom: 12px;
+    width: 12px;
+    height: 12px;
+    transform: rotate(45deg);
+    border-radius: 2px;
+  }
+
+  .bubble-left::after {
+    left: -6px;
+    background-color: var(--color-yellow-40);
+  }
+
+  .bubble-right::after {
+    right: -6px;
+    background-color: var(--color-yellow-60);
+  }
+}
+
 @layer utilities {
   .line-clamp-2 {
     display: -webkit-box;
