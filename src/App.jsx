@@ -6,7 +6,20 @@ import Splash from "@/pages/Splash";
 import Login from "@/pages/Login";
 import SendEmail from "@/pages/SendEmail";
 import ResetPassword from "@/pages/ResetPassword";
-import WeekAnswer from "@/pages/WeekAnswer";
+
+import TermsConsent from "@/pages/signup/TermsConsent";
+import KakaoEmailConfirm from "@/pages/signup/KakaoEmailConfirm";
+import EmailPasswordSignUp from "@/pages/signup/EmailPasswordSignUp";
+import NicknameSignUp from "@/pages/signup/NicknameSignUp";
+import ProfileImageStep from "@/pages/signup/ProfileImageStep";
+import BirthdateStep from "@/pages/signup/BirthdateStep";
+import PhoneNumberStep from "@/pages/signup/PhoneNumberStep";
+import FamilyCodeStep from "@/pages/signup/FamilyCodeStep";
+import FamilyConfirmStep from "@/pages/signup/FamilyConfirmStep";
+import FamilyNameCreateStep from "@/pages/signup/FamilyNameCreateStep";
+import Welcome from "@/pages/signup/Welcome";
+
+import WeekAnswer from "@/pages/week-answer/WeekAnswer";
 
 // 로그인 여부를 판단하는 함수 (임시 버전)
 function checkIsLoggedIn() {
@@ -61,6 +74,19 @@ function App() {
       {/* 비밀번호 재설정 - 이메일 전송 페이지 */}
       <Route path="/send-email" element={<SendEmail />} />
       <Route path="/reset-password" element={<ResetPassword />} />
+
+      {/* 회원가입 플로우 */}
+      <Route path="/terms-consent" element={<TermsConsent />} />
+      <Route path="/kakao-email-confirm" element={<KakaoEmailConfirm />} />
+      <Route path="/signup/email-password" element={<EmailPasswordSignUp />} />
+      <Route path="/signup/nickname" element={<NicknameSignUp />} />
+      <Route path="/signup/profile" element={<ProfileImageStep />} />
+      <Route path="/signup/birthdate" element={<BirthdateStep />} />
+      <Route path="/signup/phone" element={<PhoneNumberStep />} />
+      <Route path="/signup/family-code" element={<FamilyCodeStep />} />
+      <Route path="/signup/family-confirm" element={<FamilyConfirmStep />} />
+      <Route path="/signup/family-name" element={<FamilyNameCreateStep />} />
+      <Route path="/welcome" element={<Welcome />} />
 
       {/* 그 외 모든 경로 → 로그인 상태에 따라 기본 경로로 리다이렉트 */}
       <Route
