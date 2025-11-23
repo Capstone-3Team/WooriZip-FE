@@ -20,7 +20,7 @@ function Button({
     sizeClass = "w-full px-4 text-md";
   } else if (size === "medium") {
     // 토글 / 중간 버튼 (flex-1로 나열)
-    sizeClass = "px-8 text-md";
+    sizeClass = "px-15 text-md";
   } else if (size === "small") {
     // input 옆 작은 버튼
     sizeClass = "px-4 text-md";

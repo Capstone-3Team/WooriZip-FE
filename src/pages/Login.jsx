@@ -41,14 +41,47 @@ function Login() {
     navigate("/week-answer");
   };
 
-  const handleKakaoLogin = () => {
-    // TODO: 카카오 로그인 연동
-    console.log("카카오 로그인 클릭");
+  // 실제 카카오 로그인 + 서버 API 호출 대신, 지금은 mock 함수로 플로우만 잡아둔 상태
+  const mockKakaoLogin = async () => {
+    // TODO: 나중에 실제 카카오 SDK + 백엔드 API 연동으로 교체
+    // status: "EXISTING" | "NEEDS_SIGNUP"
+    return {
+      status: "NEEDS_SIGNUP",
+      kakaoUser: {
+        id: "kakao-123",
+        email: "woorizip@naver.com",
+      },
+    };
   };
 
-  // onClick에서 사용하는 간단한 wrapper 함수들
+  const handleKakaoLogin = async () => {
+    try {
+      const result = await mockKakaoLogin();
+
+      if (result.status === "EXISTING") {
+        // 이미 가입한 회원인 경우 → 바로 로그인 처리 후 메인으로
+        localStorage.setItem("isLoggedIn", "true");
+        navigate("/week-answer");
+        return;
+      }
+
+      if (result.status === "NEEDS_SIGNUP") {
+        // 가입 이력이 없는 카카오 계정 → 약관동의 페이지로 이동
+        navigate("/terms-consent", {
+          state: {
+            kakaoId: result.kakaoUser.id,
+            email: result.kakaoUser.email,
+          },
+        });
+      }
+    } catch (error) {
+      console.error("카카오 로그인 실패:", error);
+    }
+  };
+
+  // 일반 회원가입 버튼은 kakao 정보 없이 약관 페이지로 이동
   const goToSignUp = () => {
-    navigate("/sign-up");
+    navigate("/terms-consent");
   };
 
   const goToResetPassword = () => {
@@ -106,7 +139,7 @@ function Login() {
 
             <Button
               size="large"
-              variant="primary"
+              variant="kakao"
               type="button"
               onClick={handleKakaoLogin}
             >
@@ -118,9 +151,9 @@ function Login() {
         {/* 구분선 + 회원가입 */}
         <div className="mt-10">
           <div className="flex items-center gap-3 text-xs text-gray-60">
-            <div className="flex-1 h-px bg-gray-20" />
+            <div className="flex-1 h-px bg-gray-40" />
             <span>아직 회원이 아니신가요?</span>
-            <div className="flex-1 h-px bg-gray-20" />
+            <div className="flex-1 h-px bg-gray-40" />
           </div>
 
           <div className="mt-8">
