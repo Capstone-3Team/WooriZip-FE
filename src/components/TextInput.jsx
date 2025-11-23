@@ -47,22 +47,22 @@ function TextInput({
 
   // 기본 필드 스타일
   const baseFieldClass =
-    "w-full rounded-lg border bg-bg-app px-3 text-sm text-text-main placeholder:text-gray-40 focus:outline-none";
+    "w-full rounded-lg border bg-bg-app px-3 text-sm text-text-main placeholder:text-gray-60 focus:outline-none";
 
   // 상태별 border / 배경 / 텍스트
-  let stateClass = "border-gray-20 focus:border-yellow-main";
+  let stateClass = "border-gray-40 focus:border-yellow-main";
 
   if (isReadOnly) {
-    // ✅ 접근 불가: 노랑 배경 + 진한 텍스트
+    // 접근 불가: 노랑 배경 + 진한 텍스트
     stateClass =
-      "border-gray-20 bg-yellow-40 text-text-main placeholder:text-text-main cursor-default";
+      "border-gray-40 bg-yellow-40 text-text-main placeholder:text-text-main cursor-default";
   } else if (isError) {
     stateClass = "border-accent focus:border-accent";
   } else if (isInactive) {
-    // ✅ 비활성 스타일: 회색 텍스트지만 입력은 가능
+    // 비활성 스타일: 회색 텍스트지만 입력은 가능
     stateClass =
       "border-gray-20 bg-bg-app text-gray-60 placeholder:text-gray-60 " +
-      "focus:border-yellow-main focus:text-text-main focus:placeholder:text-gray-40";
+      "focus:border-yellow-main focus:text-text-main focus:placeholder:text-gray-60";
   }
 
   const singleLineClass = "h-13"; // 버튼과 동일 높이

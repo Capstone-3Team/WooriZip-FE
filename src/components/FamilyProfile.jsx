@@ -18,9 +18,9 @@ function FamilyProfile({
     if (variant === "big") {
       sizeClass = "w-32 h-32"; // 큰 원
     } else if (variant === "horizontal") {
-      sizeClass = "w-10 h-10"; // 댓글용
+      sizeClass = "w-8 h-8"; // 댓글용
     } else {
-      sizeClass = "w-14 h-14"; // 기본 세로형 리스트
+      sizeClass = "w-12 h-12"; // 기본 세로형 리스트
     }
 
     const avatar = (
@@ -37,7 +37,7 @@ function FamilyProfile({
           <img
             src="/icons/generic-avatar.svg"
             alt=""
-            className="w-1/2 h-1/2 opacity-70"
+            className="w-full h-full opacity-70"
           />
         )}
       </div>
@@ -107,9 +107,9 @@ function FamilyProfile({
 
   // vertical: 세로형 (프로필 + 닉네임) - 가족 구성원 리스트 등
   return (
-    <div className={`flex flex-col items-center gap-1 ${className}`}>
+    <div className={`flex flex-col items-center gap-1.5 ${className}`}>
       {renderAvatar()}
-      <span className="text-sm text-text-main">{name}</span>
+      <span className="text-sm text-medium text-text-main">{name}</span>
     </div>
   );
 }

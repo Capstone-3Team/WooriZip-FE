@@ -92,7 +92,7 @@ function SendEmail() {
         title="비밀번호 찾기"
         bgClassName="bg-bg-app"
         leftIcon={
-          <img src="/icons/back.svg" alt="뒤로가기" className="w-5 h-5" />
+          <img src="/icons/back.svg" alt="뒤로가기" className="w-8 h-8" />
         }
         onLeftClick={() => navigate(-1)}
         leftAriaLabel="뒤로가기"
