@@ -47,7 +47,7 @@ function TextInput({
 
   // 기본 필드 스타일
   const baseFieldClass =
-    "w-full rounded-lg border bg-bg-app px-3 text-sm text-text-main placeholder:text-gray-60 focus:outline-none";
+    "w-full rounded-lg border bg-bg-app px-3 text-md text-text-main placeholder:text-gray-60 focus:outline-none";
 
   // 상태별 border / 배경 / 텍스트
   let stateClass = "border-gray-40 focus:border-yellow-main";

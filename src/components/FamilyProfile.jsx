@@ -20,7 +20,7 @@ function FamilyProfile({
     } else if (variant === "horizontal") {
       sizeClass = "w-8 h-8"; // 댓글용
     } else {
-      sizeClass = "w-12 h-12"; // 기본 세로형 리스트
+      sizeClass = "w-11 h-11"; // 기본 세로형 리스트
     }
 
     const avatar = (
