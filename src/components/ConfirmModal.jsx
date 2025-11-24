@@ -33,11 +33,13 @@ function ConfirmModal({
     <Modal isOpen={isOpen} onClose={onClose}>
       <div className="flex flex-col">
         {/* 제목 */}
-        <h2 className="text-lg font-bold text-text-main">{title}</h2>
+        <h2 className="text-xl font-bold text-text-main text-center">
+          {title}
+        </h2>
 
         {/* 부가 설명 */}
         {description && (
-          <p className="mt-2 text-sm text-gray-80 whitespace-pre-line">
+          <p className="mt-4 text-md text-gray-80 whitespace-pre-line text-center">
             {description}
           </p>
         )}
@@ -66,7 +68,7 @@ function ConfirmModal({
               className="flex-1"
               onClick={handleSecondary}
             >
-              {secondaryLabel}
+              <span className="whitespace-nowrap">{secondaryLabel}</span>
             </Button>
 
             {/* 삭제/탈퇴/확인 (오른쪽, accent) */}
@@ -76,7 +78,7 @@ function ConfirmModal({
               className="flex-1"
               onClick={handlePrimary}
             >
-              {primaryLabel}
+              <span className="whitespace-nowrap">{primaryLabel}</span>
             </Button>
           </div>
         )}
