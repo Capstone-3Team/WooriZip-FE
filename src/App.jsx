@@ -20,6 +20,11 @@ import FamilyNameCreateStep from "@/pages/signup/FamilyNameCreateStep";
 import Welcome from "@/pages/signup/Welcome";
 
 import WeekAnswer from "@/pages/week-answer/WeekAnswer";
+import WeeklyRecords from "@/pages/week-answer/WeeklyRecords";
+import VideoAnswerDetail from "@/pages/week-answer/VideoAnswerDetail";
+import VideoProcessingLoading from "@/pages/week-answer/VideoProcessingLoading";
+import AddVideoAnswer from "@/pages/week-answer/AddVideoAnswer";
+import EditVideoThumbnail from "@/pages/week-answer/EditVideoThumbnail";
 
 // 로그인 여부를 판단하는 함수 (임시 버전)
 function checkIsLoggedIn() {
@@ -70,6 +75,11 @@ function App() {
 
       {/* 메인 페이지(주차별 답변 목록) */}
       <Route path="/week-answer" element={<WeekAnswer />} />
+      <Route path="/weekly-records" element={<WeeklyRecords />} />
+      <Route path="/answers/:answerId" element={<VideoAnswerDetail />} />
+      <Route path="/answers/new/loading" element={<VideoProcessingLoading />} />
+      <Route path="/answers/new" element={<AddVideoAnswer />} />
+      <Route path="/answers/edit-video" element={<EditVideoThumbnail />} />
 
       {/* 비밀번호 재설정 - 이메일 전송 페이지 */}
       <Route path="/send-email" element={<SendEmail />} />
