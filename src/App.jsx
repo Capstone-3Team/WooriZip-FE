@@ -44,6 +44,9 @@ import PetArchiveGridPage from "./pages/archive/PetArchiveGridPage";
 import PetArchiveDetailPage from "./pages/archive/PetArchiveDetailPage";
 
 // 쪽지함 관련
+import MessagesPage from "@/pages/messages/MessagesPage";
+import MessageDetailPage from "@/pages/messages/MessageDetailPage";
+import MessageWritePage from "@/pages/messages/MessageWritePage";
 
 // 마이페이지 관련
 import MyPage from "@/pages/mypage/MyPage";
@@ -154,6 +157,9 @@ function App() {
       <Route path="/archive/pets/detail" element={<PetArchiveDetailPage />} />
 
       {/* 쪽지함 페이지 */}
+      <Route path="/messages" element={<MessagesPage />} />
+      <Route path="/messages/:id" element={<MessageDetailPage />} />
+      <Route path="/messages/new" element={<MessageWritePage />} />
 
       {/* 내 정보 페이지 */}
       <Route path="/mypage" element={<MyPage />} />
