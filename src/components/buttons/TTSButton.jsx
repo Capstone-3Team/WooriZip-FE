@@ -4,7 +4,7 @@ function TTSButton({
   active = false, // false: 비활성(gray-60), true: 활성(yellow-40)
   onClick,
   ariaLabel = "TTS 재생",
-  iconSrc = "/icons/tts.svg",
+  iconSrc = "/icons/speaker.svg",
   className = "",
 }) {
   const baseClass =
