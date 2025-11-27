@@ -99,8 +99,15 @@ export default function VideoAnswerDetail() {
   };
 
   const handleEditAnswer = () => {
-    // TODO: 영상 답변 수정 페이지로 이동 + 기존 데이터 채워넣기
-    console.log("영상 답변 수정 (TODO: 작성 화면으로 이동)", answer.id);
+    if (!isCurrentWeek || !isMyAnswer) return;
+
+    // 일상기록에서 /daily/new 로 editPost 넘겨주던 패턴 그대로
+    navigate("/answers/new", {
+      state: {
+        editAnswer: answer, // ✏️ AddVideoAnswer 페이지에서 이걸로 초기값 세팅
+      },
+    });
+
     setIsAnswerMoreOpen(false);
   };
 
@@ -315,7 +322,7 @@ export default function VideoAnswerDetail() {
       <ConfirmModal
         isOpen={isDeleteAnswerModalOpen}
         onClose={() => setIsDeleteAnswerModalOpen(false)}
-        title="영상 답변을 삭제할까요?"
+        title="영상 답변 삭제"
         description={"삭제한 영상은 되돌릴 수 없어요.\n정말 삭제하시겠어요?"}
         layout="inline"
         primaryLabel="삭제"
@@ -331,7 +338,7 @@ export default function VideoAnswerDetail() {
           setIsDeleteCommentModalOpen(false);
           setCommentIdToDelete(null);
         }}
-        title="댓글을 삭제할까요?"
+        title="댓글 삭제"
         description="삭제한 댓글은 되돌릴 수 없어요."
         layout="inline"
         primaryLabel="삭제"

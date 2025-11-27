@@ -15,16 +15,17 @@ export default function EditVideoThumbnail() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // AddVideoAnswer에서 넘겨준 데이터 가정
+  // AddVideoAnswer / NewDailyPost에서 넘겨준 데이터
   const {
     videoFile,
-    videoUrl: initialUrl,
     thumbnailUrl: initialThumb,
+    returnTo,
+    returnState,
   } = location.state ?? {};
 
   const videoRef = useRef(null);
 
-  const [videoUrl, setVideoUrl] = useState(initialUrl || "/videos/sample.mp4"); // public/videos/sample.mp4 넣어두기
+  const [videoUrl, setVideoUrl] = useState(null); // public/videos/sample.mp4 넣어두기
   const [thumbnail, setThumbnail] = useState(initialThumb || null);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
@@ -33,13 +34,32 @@ export default function EditVideoThumbnail() {
   // file → objectURL 생성
   useEffect(() => {
     if (!videoFile) return;
+
     const objectUrl = URL.createObjectURL(videoFile);
     setVideoUrl(objectUrl);
+
     return () => URL.revokeObjectURL(objectUrl);
   }, [videoFile]);
 
+  // 🔹 어디로 / 어떤 state로 돌아갈지 공통 함수
+  const goBack = (extraState = {}) => {
+    if (returnTo) {
+      navigate(returnTo, {
+        replace: true,
+        state: {
+          ...(returnState || {}),
+          ...extraState,
+        },
+      });
+    } else {
+      // 옛 코드 호환용 fallback
+      navigate(-1);
+    }
+  };
+
   const handleBack = () => {
-    navigate(-1);
+    // 썸네일 변경 없이 그냥 돌아가기
+    goBack();
   };
 
   const handleLoadedMetadata = () => {
@@ -101,25 +121,15 @@ export default function EditVideoThumbnail() {
 
     console.log("최종 썸네일 데이터 URL:", dataUrl);
 
-    // TODO: 실제로는 AddVideoAnswer 쪽으로 썸네일 값을 넘겨주기
-    // 예시 (AddVideoAnswer 라우트가 /answers/new 인 경우):
-    // navigate("/answers/new", {
-    //   replace: true,
-    //   state: {
-    //     ...restState,
-    //     videoFile,
-    //     thumbnailUrl: dataUrl,
-    //   },
-    // });
-
-    navigate(-1);
+    // 🔹 편집 결과(썸네일)까지 부모 페이지 state에 실어서 되돌아가기
+    goBack({ thumbnailUrl: dataUrl });
   };
 
   return (
     <div className="min-h-screen bg-bg-app flex flex-col">
       {/* 헤더 */}
       <Header
-        variant="type2"
+        variant="solid"
         title="영상 수정하기"
         leftIcon={<img src="/icons/close.svg" alt="닫기" className="w-6 h-6" />}
         onLeftClick={handleBack}

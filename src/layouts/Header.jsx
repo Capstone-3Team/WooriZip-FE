@@ -78,7 +78,7 @@ function Header({
       <header className={`${baseClass} ${className}`}>
         {/* 밖에서 titleClassName 들어오면 Tailwind는 뒤에 오는 클래스가 이겨서 사실상 titleClassName이 적용됨
         + 위치 지정 안해주면 기본적으로 왼쪽 정렬됨 */}
-        <h1 className={`text-xl font-semibold ${titleClassName}`}>{title}</h1>
+        <h1 className={`text-2xl font-semibold`}>{title}</h1>
       </header>
     );
   }

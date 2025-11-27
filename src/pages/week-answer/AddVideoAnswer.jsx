@@ -22,7 +22,7 @@ export default function AddVideoAnswer() {
 
   // “영상 및 썸네일 수정” → 다음에 만들 영상 편집 페이지로 이동 (TODO)
   const handleEditVideo = () => {
-    navigate("/answers/edit-video", {
+    navigate("/edit-video", {
       state: {
         videoFile, // WeekAnswer → 로딩 → AddVideoAnswer에서 넘겨받은 그 파일
         thumbnailUrl, // 현재 썸네일
