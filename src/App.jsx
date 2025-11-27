@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 
+// 온보딩, 로그인 관련
 import FirstLoading from "@/pages/FirstLoading";
 import Splash from "@/pages/Splash";
 import Login from "@/pages/Login";
 import SendEmail from "@/pages/SendEmail";
 import ResetPassword from "@/pages/ResetPassword";
 
+// 회원가입 플로우 관련
 import TermsConsent from "@/pages/signup/TermsConsent";
 import KakaoEmailConfirm from "@/pages/signup/KakaoEmailConfirm";
 import EmailPasswordSignUp from "@/pages/signup/EmailPasswordSignUp";
@@ -19,12 +21,42 @@ import FamilyConfirmStep from "@/pages/signup/FamilyConfirmStep";
 import FamilyNameCreateStep from "@/pages/signup/FamilyNameCreateStep";
 import Welcome from "@/pages/signup/Welcome";
 
+// 주차별 답변 관련
 import WeekAnswer from "@/pages/week-answer/WeekAnswer";
 import WeeklyRecords from "@/pages/week-answer/WeeklyRecords";
 import VideoAnswerDetail from "@/pages/week-answer/VideoAnswerDetail";
 import VideoProcessingLoading from "@/pages/week-answer/VideoProcessingLoading";
 import AddVideoAnswer from "@/pages/week-answer/AddVideoAnswer";
 import EditVideoThumbnail from "@/pages/week-answer/EditVideoThumbnail";
+
+// 일상 기록 관련
+import DailyRecords from "./pages/daily/DailyRecords";
+import NewDailyPost from "@/pages/daily/NewDailyPost";
+
+// 아카이브 관련
+import ArchivePage from "@/pages/archive/ArchivePage";
+import MemberArchivePage from "@/pages/archive/MemberArchivePage";
+import DailyArchivePage from "@/pages/archive/DailyArchivePage";
+import DailyArchiveDetailPage from "@/pages/archive/DailyArchiveDetailPage";
+import MemberArchiveGridPage from "@/pages/archive/MemberArchiveGridPage";
+import MemberArchiveDetailPage from "@/pages/archive/MemberArchiveDetailPage";
+import PetArchiveGridPage from "./pages/archive/PetArchiveGridPage";
+import PetArchiveDetailPage from "./pages/archive/PetArchiveDetailPage";
+
+// 쪽지함 관련
+
+// 마이페이지 관련
+import MyPage from "@/pages/mypage/MyPage";
+import ProfileSettingsPage from "@/pages/mypage/ProfileSettingsPage";
+import ChangePasswordCurrent from "@/pages/mypage/ChangePasswordCurrent";
+import ChangeResetPassword from "@/pages/mypage/ChangeResetPassword";
+import EditEmailPage from "./pages/mypage/EditEmailPage";
+import EditPhonePage from "./pages/mypage/EditPhonePage";
+import EditNicknamePage from "./pages/mypage/EditNicknamePage";
+import FamilyDetailPage from "./pages/mypage/FamilyDetailPage";
+import EditFamilyNicknamePage from "./pages/mypage/EditFamilyNicknamePage";
+import TextSizeSettingsPage from "./pages/mypage/TextSizeSettingsPage";
+import TTSVoiceSettingsPage from "./pages/mypage/TTSVoiceSettingsPage";
 
 // 로그인 여부를 판단하는 함수 (임시 버전)
 function checkIsLoggedIn() {
@@ -73,14 +105,6 @@ function App() {
       {/* 스플래시를 직접 보고 싶을 때를 위해 경로 하나 더 남겨두기 */}
       <Route path="/splash" element={<Splash />} />
 
-      {/* 메인 페이지(주차별 답변 목록) */}
-      <Route path="/week-answer" element={<WeekAnswer />} />
-      <Route path="/weekly-records" element={<WeeklyRecords />} />
-      <Route path="/answers/:answerId" element={<VideoAnswerDetail />} />
-      <Route path="/answers/new/loading" element={<VideoProcessingLoading />} />
-      <Route path="/answers/new" element={<AddVideoAnswer />} />
-      <Route path="/answers/edit-video" element={<EditVideoThumbnail />} />
-
       {/* 비밀번호 재설정 - 이메일 전송 페이지 */}
       <Route path="/send-email" element={<SendEmail />} />
       <Route path="/reset-password" element={<ResetPassword />} />
@@ -97,6 +121,58 @@ function App() {
       <Route path="/signup/family-confirm" element={<FamilyConfirmStep />} />
       <Route path="/signup/family-name" element={<FamilyNameCreateStep />} />
       <Route path="/welcome" element={<Welcome />} />
+
+      {/* 메인 페이지(주차별 답변 목록) */}
+      <Route path="/week-answer" element={<WeekAnswer />} />
+      <Route path="/weekly-records" element={<WeeklyRecords />} />
+      <Route path="/answers/:answerId" element={<VideoAnswerDetail />} />
+      <Route path="/answers/new/loading" element={<VideoProcessingLoading />} />
+      <Route path="/answers/new" element={<AddVideoAnswer />} />
+      <Route path="/edit-video" element={<EditVideoThumbnail />} />
+
+      {/* 일상 기록 페이지 */}
+      <Route path="/daily" element={<DailyRecords />} />
+      <Route path="/daily/new" element={<NewDailyPost />} />
+
+      {/* 아카이브(전체 보관함) 페이지 */}
+      <Route path="/archive" element={<ArchivePage />} />
+      <Route path="/archive/members" element={<MemberArchivePage />} />
+      <Route path="/archive/daily" element={<DailyArchivePage />} />
+      <Route
+        path="/archive/daily/detail"
+        element={<DailyArchiveDetailPage />}
+      />
+      <Route
+        path="/archive/members/:memberId"
+        element={<MemberArchiveGridPage />}
+      />
+      <Route
+        path="/archive/members/:memberId/detail"
+        element={<MemberArchiveDetailPage />}
+      />
+      <Route path="/archive/pets" element={<PetArchiveGridPage />} />
+      <Route path="/archive/pets/detail" element={<PetArchiveDetailPage />} />
+
+      {/* 쪽지함 페이지 */}
+
+      {/* 내 정보 페이지 */}
+      <Route path="/mypage" element={<MyPage />} />
+      <Route path="/mypage/profile" element={<ProfileSettingsPage />} />
+      <Route
+        path="/mypage/change-password"
+        element={<ChangePasswordCurrent />}
+      />
+      <Route path="/mypage/reset-password" element={<ChangeResetPassword />} />
+      <Route path="/mypage/edit-email" element={<EditEmailPage />} />
+      <Route path="/mypage/edit-phone" element={<EditPhonePage />} />
+      <Route path="/mypage/edit-nickname" element={<EditNicknamePage />} />
+      <Route path="/mypage/family-detail" element={<FamilyDetailPage />} />
+      <Route
+        path="/mypage/edit-family-name"
+        element={<EditFamilyNicknamePage />}
+      />
+      <Route path="/settings/text-size" element={<TextSizeSettingsPage />} />
+      <Route path="/settings/tts" element={<TTSVoiceSettingsPage />} />
 
       {/* 그 외 모든 경로 → 로그인 상태에 따라 기본 경로로 리다이렉트 */}
       <Route
