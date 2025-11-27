@@ -95,12 +95,13 @@ function BirthdateStep() {
           />
 
           {/* 양력 / 음력 선택 버튼 */}
-          <div className="flex gap-6.5 mt-5">
+          <div className="mt-5 flex gap-3">
             <Button
               size="medium"
               variant={calendarType === "solar" ? "primary" : "notFocus"}
               type="button"
               onClick={() => handleClickCalendar("solar")}
+              className="flex-1"
             >
               양력
             </Button>
@@ -109,6 +110,7 @@ function BirthdateStep() {
               variant={calendarType === "lunar" ? "primary" : "notFocus"}
               type="button"
               onClick={() => handleClickCalendar("lunar")}
+              className="flex-1"
             >
               음력
             </Button>
