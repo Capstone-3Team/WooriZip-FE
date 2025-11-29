@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { shareFamilyInvite } from "@/utils/shareFamilyInvite";
 import Button from "@/components/buttons/Button";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -34,21 +35,8 @@ function Welcome() {
     navigate("/week-answer");
   };
 
-  const handleShareCode = async () => {
-    if (!familyCode) {
-      alert("가족 코드가 아직 발급되지 않았어요. 잠시 후 다시 시도해 주세요.");
-      return;
-    }
-
-    try {
-      await navigator.clipboard.writeText(familyCode);
-      alert(
-        "가족 코드가 복사되었어요. 카카오톡 등으로 붙여넣어 가족에게 공유해 주세요."
-      );
-    } catch (error) {
-      console.error(error);
-      alert("복사에 실패했어요. 다시 시도해 주세요.");
-    }
+  const handleShareCode = () => {
+    shareFamilyInvite(familyCode);
   };
 
   useEffect(() => {

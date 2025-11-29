@@ -1,5 +1,6 @@
 import { useMemo, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { shareFamilyInvite } from "@/utils/shareFamilyInvite";
 import Header from "@/layouts/Header";
 import BottomNav from "@/layouts/BottomNav";
 import Button from "@/components/buttons/Button";
@@ -11,6 +12,9 @@ const MOCK_WEEK_INFO = {
   label: "2025년 11월 1주차",
   question: "Q. 우리 가족의 장점은 무엇인가요?",
 };
+
+// TODO: 실제 로그인 유저의 가족코드를 전역 상태(예: store)에서 읽어오도록 교체
+const MOCK_FAMILY_CODE = "12345678";
 
 // 현재 로그인한 유저 id (나중에 실제 로그인 정보로 교체)
 const CURRENT_USER_ID = "me";
@@ -76,18 +80,8 @@ function WeekAnswer() {
   const hasAnswers = answers.length > 0;
 
   const handleShareFamilyCode = async () => {
-    // TODO: 실제 가족코드 받아온 뒤 복사/공유 로직 연결
-    const mockCode = "12345678";
-
-    try {
-      await navigator.clipboard.writeText(mockCode);
-      alert(
-        "가족 코드가 복사되었어요. 카카오톡에서 붙여넣어 가족에게 공유해 주세요."
-      );
-    } catch (error) {
-      console.error(error);
-      alert("복사에 실패했어요. 다시 시도해 주세요.");
-    }
+    // TODO: MOCK_FAMILY_CODE 대신 실제 로그인 상태의 familyCode로 교체
+    shareFamilyInvite(MOCK_FAMILY_CODE);
   };
 
   // 답변하기 버튼 → 숨겨진 비디오 input 클릭
