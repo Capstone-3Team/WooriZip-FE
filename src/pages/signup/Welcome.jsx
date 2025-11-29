@@ -13,12 +13,12 @@ function Welcome() {
   const {
     email,
     password,
-    kakaoId, // 현재 스펙에는 없지만 state로는 받아둠
-    agreedTerms,
+    // kakaoId, // 현재 스펙에는 없지만 state로는 받아둠
+    // agreedTerms,
     nickname,
     profileImageUrl,
     birthdate, // BirthdateStep에서 넘긴 값 (ex. "20001010")
-    calendarType,
+    // calendarType,
     phone,
     familyName,
     familyCode: initialFamilyCode, // 기존 가족 합류 플로우라면 코드가 있을 수 있음
@@ -50,39 +50,6 @@ function Welcome() {
       alert("복사에 실패했어요. 다시 시도해 주세요.");
     }
   };
-
-  // ✅ 이 페이지로 넘어온 값 확인용 (연동 끝나면 삭제해도 됨)
-  useEffect(() => {
-    console.log("Welcome 받은 state:", {
-      email,
-      password,
-      kakaoId,
-      agreedTerms,
-      nickname,
-      profileImageUrl,
-      birthdate,
-      calendarType,
-      phone,
-      familyName,
-      initialFamilyCode,
-      isNewFamily,
-      showShareButton,
-    });
-  }, [
-    email,
-    password,
-    kakaoId,
-    agreedTerms,
-    nickname,
-    profileImageUrl,
-    birthdate,
-    calendarType,
-    phone,
-    familyName,
-    initialFamilyCode,
-    isNewFamily,
-    showShareButton,
-  ]);
 
   useEffect(() => {
     // 필수 값 없으면 요청 안 함
@@ -135,9 +102,6 @@ function Welcome() {
           // 에러 응답에도 보통 메시지가 들어올 수 있으니까 같이 사용
           throw new Error(text || `회원가입 실패 (status: ${res.status})`);
         }
-
-        // 응답 구조 확인용 (연동 확인 후 삭제해도 됨)
-        console.log("[DEBUG] /member/register response:", text);
 
         // "회원가입 성공! 가족 코드: D1736E3D" 에서 영문/숫자 8자리만 뽑기
         const match = text.match(/([A-Z0-9]{8})/);

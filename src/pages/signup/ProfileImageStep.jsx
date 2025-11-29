@@ -22,16 +22,6 @@ function ProfileImageStep() {
   const [profileImageUrl, setProfileImageUrl] = useState(null);
   const fileInputRef = useRef(null);
 
-  // ✅ 1) 이 단계에서 값이 제대로 들어오는지 확인용 (나중에 삭제해도 됨)
-  useEffect(() => {
-    console.log("ProfileImageStep 받은 값:", {
-      email,
-      password,
-      agreedTerms,
-      nickname,
-    });
-  }, [email, password, agreedTerms, nickname]);
-
   // ✅ 2) 컴포넌트 unmount 시 URL 정리 (메모리 누수 방지)
   useEffect(() => {
     return () => {
@@ -60,22 +50,9 @@ function ProfileImageStep() {
 
     const imageUrl = URL.createObjectURL(file);
     setProfileImageUrl(imageUrl);
-
-    // ✅ 3) 지금 선택된 파일/URL 확인용 콘솔 (연동 끝나면 삭제해도 됨)
-    console.log("선택된 프로필 이미지 파일:", file);
-    console.log("프론트 미리보기용 URL:", imageUrl);
   };
 
   const handleNext = () => {
-    // ✅ 4) 다음 단계로 넘기는 값 확인용 콘솔 (연동 끝나면 삭제)
-    console.log("ProfileImageStep → BirthdateStep 이동 with:", {
-      email,
-      password,
-      agreedTerms,
-      nickname,
-      profileImageUrl,
-    });
-
     navigate("/signup/birthdate", {
       state: {
         email,

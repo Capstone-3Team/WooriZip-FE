@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Header from "@/layouts/Header";
 import ProgressBar from "@/components/ProgressBar";
@@ -11,15 +11,6 @@ function NicknameSignUp() {
 
   // 이전 단계(이메일/비밀번호)에서 넘겨준 값들
   const { email, password, kakaoId, agreedTerms } = location.state || {};
-  // 👇 여기서 한 번만 찍어보기
-  useEffect(() => {
-    console.log("NicknameSignUp state:", {
-      email,
-      password,
-      kakaoId,
-      agreedTerms,
-    });
-  }, [email, password, agreedTerms, kakaoId]);
 
   const [nickname, setNickname] = useState("");
 

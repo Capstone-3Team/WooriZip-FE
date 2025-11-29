@@ -23,40 +23,7 @@ function FamilyConfirmStep() {
     familyLeader, // { id, nickname, profile }
   } = location.state || {};
 
-  // ✅ 이 페이지가 받을 값 확인용 (연동 끝나면 삭제해도 됨)
-  console.log("FamilyConfirmStep 받은 값:", {
-    email,
-    password,
-    kakaoId,
-    agreedTerms,
-    nickname,
-    profileImageUrl,
-    birthdate,
-    calendarType,
-    phone,
-    familyCode,
-    familyName,
-    familyLeader,
-  });
-
   const handleConfirm = () => {
-    // ✅ 다음 단계로 넘길 값 확인용 (연동 끝나면 이 로그만 지우면 됨)
-    console.log("FamilyConfirmStep → Welcome 이동 with:", {
-      email,
-      password,
-      kakaoId,
-      agreedTerms,
-      nickname,
-      profileImageUrl,
-      birthdate,
-      calendarType,
-      phone,
-      familyCode,
-      familyName,
-      familyLeader,
-      showShareButton: false,
-    });
-
     navigate("/welcome", {
       state: {
         email,

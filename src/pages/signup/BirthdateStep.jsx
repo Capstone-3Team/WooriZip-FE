@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Header from "@/layouts/Header";
 import TextInput from "@/components/TextInput";
@@ -18,19 +18,6 @@ function BirthdateStep() {
 
   const trimmedBirthdate = birthdate.trim();
 
-  // ✅ (디버깅용) 이 단계에 값이 제대로 넘어왔는지 확인
-  //    연동 확인 끝나면 이 useEffect 통째로 삭제하면 됨
-  useEffect(() => {
-    console.log("BirthdateStep 받은 값:", {
-      email,
-      password,
-      kakaoId,
-      agreedTerms,
-      nickname,
-      profileImageUrl,
-    });
-  }, [email, password, kakaoId, agreedTerms, nickname, profileImageUrl]);
-
   // 숫자 8자리인지 간단 검사 (예: 20001010)
   const birthdateRegex = /^\d{8}$/;
   const isBirthValid =
@@ -46,19 +33,6 @@ function BirthdateStep() {
 
   const handleNext = () => {
     if (!canNext) return;
-
-    // ✅ (디버깅용) 다음 단계로 넘길 값 확인
-    //    연동 끝나면 이 console.log 한 줄만 삭제하면 됨
-    console.log("BirthdateStep → PhoneStep 이동 with:", {
-      email,
-      password,
-      kakaoId,
-      agreedTerms,
-      nickname,
-      profileImageUrl,
-      birthdate: trimmedBirthdate,
-      calendarType,
-    });
 
     navigate("/signup/phone", {
       state: {

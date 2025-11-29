@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Header from "@/layouts/Header";
 import TextInput from "@/components/TextInput";
@@ -36,30 +36,6 @@ function PhoneNumberStep() {
 
   const canNext = phoneRegex.test(trimmedPhone) && !!birthdate;
   const nextVariant = canNext ? "primary" : "notFocus";
-
-  // ✅ 이 단계에 값이 제대로 넘어왔는지 확인용
-  //    연동 다 끝나면 이 useEffect 통째로 삭제해도 됨
-  useEffect(() => {
-    console.log("PhoneNumberStep 받은 값:", {
-      email,
-      password,
-      kakaoId,
-      agreedTerms,
-      nickname,
-      profileImageUrl,
-      birthdate,
-      calendarType: initialCalendarType,
-    });
-  }, [
-    email,
-    password,
-    kakaoId,
-    agreedTerms,
-    nickname,
-    profileImageUrl,
-    birthdate,
-    initialCalendarType,
-  ]);
 
   const handleNext = () => {
     if (!canNext) return;
