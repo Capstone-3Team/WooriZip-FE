@@ -20,7 +20,7 @@ function FamilyConfirmStep() {
     phone,
     familyCode,
     familyName = "우리 가족",
-    familyLeader,
+    familyLeader, // { id, nickname, profile }
   } = location.state || {};
 
   const handleConfirm = () => {
@@ -44,11 +44,16 @@ function FamilyConfirmStep() {
   };
 
   // 대표 정보 기본값
-  const leaderProfile = familyLeader || {
-    name: "누군가",
-    // subtitle: "우리 가족 대표",
-    imageSrc: "/images/user.png",
-  };
+  // familyLeader: { id, nickname, profile }
+  const leaderProfile = familyLeader
+    ? {
+        name: familyLeader.nickname || "가족 대표",
+        imageSrc: familyLeader.profile || "/images/user.png",
+      }
+    : {
+        name: "가족 대표",
+        imageSrc: "/images/user.png",
+      };
 
   return (
     <div className="min-h-screen bg-bg-app flex flex-col">

@@ -10,7 +10,7 @@ function NicknameSignUp() {
   const location = useLocation();
 
   // 이전 단계(이메일/비밀번호)에서 넘겨준 값들
-  const { email, password, agreedTerms } = location.state || {};
+  const { email, password, kakaoId, agreedTerms } = location.state || {};
 
   const [nickname, setNickname] = useState("");
 
@@ -31,6 +31,7 @@ function NicknameSignUp() {
       state: {
         email,
         password,
+        kakaoId,
         agreedTerms,
         nickname: trimmedNickname,
       },

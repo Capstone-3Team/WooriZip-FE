@@ -37,10 +37,6 @@ function FamilyNameCreateStep() {
   const handleConfirm = () => {
     if (!canConfirm) return;
 
-    // TODO: 실제 가족 생성 API 호출해서 familyCode 받아오기
-    // 지금은 UI 확인용으로 mock 코드 사용
-    const mockFamilyCode = "12345678";
-
     navigate("/welcome", {
       state: {
         email,
@@ -53,8 +49,9 @@ function FamilyNameCreateStep() {
         calendarType,
         phone,
         familyName: trimmedName,
-        familyCode: mockFamilyCode,
-        showShareButton: true, // 가족 생성 플로우 → 공유 버튼 보이게 (오른쪽 화면)
+        familyCode: null, // ★ 아직 모르는 값. 나중에 register 응답으로 채움
+        isNewFamily: true, // 가족 생성 플로우인지 표시
+        showShareButton: true,
       },
     });
   };
