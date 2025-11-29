@@ -3,6 +3,8 @@ import { useLocation, useNavigate } from "react-router-dom";
 import TextInput from "@/components/TextInput";
 import Button from "@/components/buttons/Button";
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
 function Login() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -14,17 +16,18 @@ function Login() {
   const [password, setPassword] = useState(""); // 비밀번호 입력 값
   const [idError, setIdError] = useState(""); // 아이디/이메일 관련 에러 메시지
   const [passwordError, setPasswordError] = useState(""); // 비밀번호 관련 에러 메시지
-  // 에러가 있으면 TextInput에 errorMessage로 내려보내서 input 아래 빨간 글자로 표시
+  const [formError, setFormError] = useState(""); // 서버에서 온 에러/기타 오류 메시지
+  const [isSubmitting, setIsSubmitting] = useState(false); // 로그인 요청 중 여부
 
   // 로그인 버튼 클릭 핸들러 (메인 로직)
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
 
     let hasError = false;
 
     if (!idOrEmail.trim()) {
       // 공백을 제거한 문자열이 빈 문자열이면 입력안한 것으로 판단
-      setIdError("아이디 또는 이메일을 입력해주세요.");
+      setIdError("이메일을 입력해주세요.");
       hasError = true;
     } else {
       setIdError("");
@@ -39,10 +42,53 @@ function Login() {
 
     if (hasError) return;
 
-    // TODO: API 호출 + 검증 후, 성공했다고 가정하면:
-    localStorage.setItem("isLoggedIn", "true");
+    // 여기부터 실제 로그인 API 호출
+    try {
+      setIsSubmitting(true);
+      setFormError("");
 
-    navigate("/week-answer");
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        // 스웨거 기준: { "email": "string", "password": "string" }
+        body: JSON.stringify({
+          email: idOrEmail.trim(),
+          password: password.trim(),
+        }),
+      });
+
+      const contentType = response.headers.get("content-type") || "";
+
+      // 응답이 JSON인지 확인
+      if (!contentType.includes("application/json")) {
+        const text = await response.text();
+        throw new Error(text || "서버 응답 형식이 올바르지 않습니다.");
+      }
+
+      const data = await response.json(); // { token, message }
+
+      if (!response.ok) {
+        throw new Error(data.message || "로그인에 실패했습니다.");
+      }
+
+      // JWT 토큰 + 로그인 상태 로컬에 저장
+      if (data.token) {
+        localStorage.setItem("accessToken", data.token);
+      }
+      localStorage.setItem("isLoggedIn", "true");
+
+      // TODO: 나중에 필요하면 message도 사용 가능
+      console.log("[DEBUG] /auth/login success:", data);
+
+      navigate("/week-answer");
+    } catch (error) {
+      console.error("로그인 실패:", error);
+      setFormError(error.message || "로그인 중 오류가 발생했습니다.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // 실제 카카오 로그인 + 서버 API 호출 대신, 지금은 mock 함수로 플로우만 잡아둔 상태
@@ -110,9 +156,13 @@ function Login() {
           {/* 아이디/이메일 */}
           <TextInput
             name="idOrEmail"
-            placeholder="아이디나 이메일을 입력해주세요"
+            placeholder="이메일을 입력해주세요"
             value={idOrEmail}
-            onChange={(e) => setIdOrEmail(e.target.value)}
+            onChange={(e) => {
+              setIdOrEmail(e.target.value);
+              setIdError("");
+              setFormError("");
+            }}
             errorMessage={idError}
           />
 
@@ -123,7 +173,11 @@ function Login() {
               type="password"
               placeholder="비밀번호를 입력해주세요"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                setPasswordError("");
+                setFormError("");
+              }}
               showPasswordToggle
               errorMessage={passwordError}
             />
@@ -133,15 +187,25 @@ function Login() {
                 onClick={goToResetPassword}
                 className="mr-3 block text-xs text-gray-60"
               >
-                비밀번호 재설정
+                비밀번호 찾기
               </button>
             </div>
           </div>
 
+          {/* 서버 에러 메시지 */}
+          {formError && (
+            <p className="mt-1 text-xs text-red-500">{formError}</p>
+          )}
+
           {/* 로그인 / 카카오 로그인 버튼 */}
           <div className="mt-6 space-y-4">
-            <Button size="large" variant="primary" type="submit">
-              로그인
+            <Button
+              size="large"
+              variant="primary"
+              type="submit"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "로그인 중..." : "로그인"}
             </Button>
 
             <Button
