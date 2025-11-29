@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Header from "@/layouts/Header";
 import ProgressBar from "@/components/ProgressBar";
@@ -34,12 +34,51 @@ function FamilyNameCreateStep() {
   const canConfirm = !!trimmedName && isLengthValid;
   const confirmVariant = canConfirm ? "primary" : "notFocus";
 
+  // ✅ 이 단계로 들어올 때 값 확인용 (연동 끝나면 삭제해도 됨)
+  useEffect(() => {
+    console.log("FamilyNameCreateStep 받은 값:", {
+      email,
+      password,
+      kakaoId,
+      agreedTerms,
+      nickname,
+      profileImageUrl,
+      birthdate,
+      calendarType,
+      phone,
+    });
+  }, [
+    email,
+    password,
+    kakaoId,
+    agreedTerms,
+    nickname,
+    profileImageUrl,
+    birthdate,
+    calendarType,
+    phone,
+  ]);
+
   const handleConfirm = () => {
     if (!canConfirm) return;
 
-    // TODO: 실제 가족 생성 API 호출해서 familyCode 받아오기
-    // 지금은 UI 확인용으로 mock 코드 사용
-    const mockFamilyCode = "12345678";
+    // ✅ 가입완료 페이지로 넘길 값 확인용
+    //    나중에 /member/register 붙일 때 여기 값들 + familyName을 같이 보낼 예정
+    console.log("FamilyNameCreateStep → Welcome 이동 with:", {
+      email,
+      password,
+      kakaoId,
+      agreedTerms,
+      nickname,
+      profileImageUrl,
+      birthdate,
+      calendarType,
+      phone,
+      familyName: trimmedName,
+      // familyCode는 아직 없음 (회원가입 API 응답에서 받을 예정)
+      isNewFamily: true,
+      showShareButton: true,
+    });
 
     navigate("/welcome", {
       state: {
@@ -53,8 +92,9 @@ function FamilyNameCreateStep() {
         calendarType,
         phone,
         familyName: trimmedName,
-        familyCode: mockFamilyCode,
-        showShareButton: true, // 가족 생성 플로우 → 공유 버튼 보이게 (오른쪽 화면)
+        familyCode: null, // ★ 아직 모르는 값. 나중에 register 응답으로 채움
+        isNewFamily: true, // 가족 생성 플로우인지 표시
+        showShareButton: true,
       },
     });
   };

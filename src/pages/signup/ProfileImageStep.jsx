@@ -1,3 +1,4 @@
+import { useEffect, useState, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Header from "@/layouts/Header";
 import ProgressBar from "@/components/ProgressBar";
@@ -9,25 +10,80 @@ function ProfileImageStep() {
   const location = useLocation();
 
   // 이전 단계에서 받은 값들
-  const { email, password, agreedTerms, nickname = "" } = location.state || {};
+  const {
+    email,
+    password,
+    kakaoId,
+    agreedTerms,
+    nickname = "",
+  } = location.state || {};
 
-  const trimmedNickname = nickname.trim();
+  // 선택한 프로필 이미지 (프론트 미리보기용 URL)
+  const [profileImageUrl, setProfileImageUrl] = useState(null);
+  const fileInputRef = useRef(null);
 
+  // ✅ 1) 이 단계에서 값이 제대로 들어오는지 확인용 (나중에 삭제해도 됨)
+  useEffect(() => {
+    console.log("ProfileImageStep 받은 값:", {
+      email,
+      password,
+      agreedTerms,
+      nickname,
+    });
+  }, [email, password, agreedTerms, nickname]);
+
+  // ✅ 2) 컴포넌트 unmount 시 URL 정리 (메모리 누수 방지)
+  useEffect(() => {
+    return () => {
+      if (profileImageUrl) {
+        URL.revokeObjectURL(profileImageUrl);
+      }
+    };
+  }, [profileImageUrl]);
+
+  // 프로필 영역 클릭 → 숨겨둔 파일 입력창 열기
   const handleSelectImage = () => {
-    // TODO: 앨범/카메라 열어서 이미지 선택하는 로직 연결
-    console.log("프로필 이미지 선택 클릭");
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  // 파일 선택 시 호출
+  const handleFileChange = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // 이전에 만든 object URL 있으면 정리
+    if (profileImageUrl) {
+      URL.revokeObjectURL(profileImageUrl);
+    }
+
+    const imageUrl = URL.createObjectURL(file);
+    setProfileImageUrl(imageUrl);
+
+    // ✅ 3) 지금 선택된 파일/URL 확인용 콘솔 (연동 끝나면 삭제해도 됨)
+    console.log("선택된 프로필 이미지 파일:", file);
+    console.log("프론트 미리보기용 URL:", imageUrl);
   };
 
   const handleNext = () => {
-    // 별명은 최신 값(입력창에서 수정됐을 수도 있으니까)으로 넘기기
+    // ✅ 4) 다음 단계로 넘기는 값 확인용 콘솔 (연동 끝나면 삭제)
+    console.log("ProfileImageStep → BirthdateStep 이동 with:", {
+      email,
+      password,
+      agreedTerms,
+      nickname,
+      profileImageUrl,
+    });
+
     navigate("/signup/birthdate", {
       state: {
         email,
         password,
-        //kakaoId,          // 카카오 회원가입이면 유지, 아니면 undefined
+        kakaoId,
         agreedTerms,
-        nickname: trimmedNickname,
-        //profileImageUrl,  // 나중에 실제 이미지 선택 로직 붙이면 같이 넘기면 됨
+        nickname,
+        profileImageUrl, // 선택 안 했으면 null
       },
     });
   };
@@ -51,10 +107,10 @@ function ProfileImageStep() {
           <ProgressBar currentStep={3} totalSteps={7} className="mb-8" />
 
           <h1 className="text-xl font-semibold text-text-main leading-snug">
-            프로필 이미지 (선택)
+            프로필 이미지를 선택해주세요
           </h1>
           <p className="mt-2 text-sm text-gray-60">
-            활동할 프로필 이미지를 생성할 수 있어요
+            활동할 프로필 이미지를 선택하거나 나중에 설정할 수 있어요.
           </p>
         </section>
 
@@ -63,19 +119,35 @@ function ProfileImageStep() {
           <button
             type="button"
             onClick={handleSelectImage}
-            className="w-36 h-36 rounded-full bg-gray-20 flex items-center justify-center"
+            className="w-36 h-36 rounded-full bg-gray-20 flex items-center justify-center overflow-hidden"
             aria-label="프로필 이미지 선택"
           >
-            {/* 실제 이미지를 넣기 전까지는 기본 아이콘/placeholder */}
-            <img
-              src="/icons/user.svg"
-              alt=""
-              className="w-20 h-20 opacity-70"
-            />
+            {profileImageUrl ? (
+              <img
+                src={profileImageUrl}
+                alt="선택한 프로필 이미지"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <img
+                src="/icons/user.svg"
+                alt="기본 프로필 아이콘"
+                className="w-20 h-20 opacity-70"
+              />
+            )}
           </button>
+
+          {/* 숨겨진 파일 입력 */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleFileChange}
+          />
         </section>
 
-        {/* 별명 표시 영역 */}
+        {/* 별명 표시 영역 (읽기 전용) */}
         <section className="mt-10">
           <label
             htmlFor="nickname"
@@ -87,9 +159,9 @@ function ProfileImageStep() {
           <TextInput
             name="nickname"
             id="nickname"
-            value={trimmedNickname}
+            value={nickname}
             placeholder="별명 입력"
-            readOnly // 디자인대로 노랑 배경 + 입력 불가
+            readOnly
           />
         </section>
 

@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Header from "@/layouts/Header";
 import ProgressBar from "@/components/ProgressBar";
 import TextInput from "@/components/TextInput";
 import Button from "@/components/buttons/Button";
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 function FamilyCodeStep() {
   const navigate = useNavigate();
@@ -22,34 +24,99 @@ function FamilyCodeStep() {
   } = location.state || {};
 
   const [familyCode, setFamilyCode] = useState("");
+  const [familyError, setFamilyError] = useState("");
+  const [isChecking, setIsChecking] = useState(false);
 
   const trimmedCode = familyCode.trim();
-  const codeRegex = /^\d{8}$/; // 숫자 8자리
+
+  // ✅ 영문/숫자 8자리 코드 (D1736E3D 같은 형식)
+  const codeRegex = /^[A-Za-z0-9]{8}$/;
   const isCodeValid = codeRegex.test(trimmedCode);
 
   const nextVariant = isCodeValid ? "primary" : "notFocus";
 
-  // 실제로는 여기서 서버에 가족코드 조회 API 호출
-  const mockFetchFamilyByCode = async (code) => {
-    console.log("가족코드 조회:", code);
-    // 예시로 더미 데이터 리턴
+  // ✅ 이 단계에서 값 제대로 넘어왔는지 확인용 (연동 끝나면 삭제해도 됨)
+  useEffect(() => {
+    console.log("FamilyCodeStep 받은 값:", {
+      email,
+      password,
+      kakaoId,
+      agreedTerms,
+      nickname,
+      profileImageUrl,
+      birthdate,
+      calendarType,
+      phone,
+    });
+  }, [
+    email,
+    password,
+    kakaoId,
+    agreedTerms,
+    nickname,
+    profileImageUrl,
+    birthdate,
+    calendarType,
+    phone,
+  ]);
+
+  // ✅ 실제 가족코드 조회 API (/member/family-info)
+  const fetchFamilyByCode = async (code) => {
+    const res = await fetch(
+      `${API_BASE_URL}/member/family-info?inviteCode=${encodeURIComponent(
+        code
+      )}`,
+      {
+        method: "GET",
+      }
+    );
+
+    if (!res.ok) {
+      // 존재하지 않는 코드면 404일 가능성이 높음
+      if (res.status === 404) {
+        return null;
+      }
+      throw new Error(`가족코드 조회 실패 (status: ${res.status})`);
+    }
+
+    const data = await res.json();
+
+    // ✅ 응답 구조 확인용 (연동 끝나면 지워도 됨)
+    console.log("[DEBUG] /member/family-info response:", data);
+
+    // Swagger 응답:
+    // {
+    //   "familyName": "string",
+    //   "leaderId": 1,
+    //   "leaderNickname": "string",
+    //   "leaderProfile": "a.jpg"
+    // }
     return {
-      familyName: "우주 최강 가족",
+      familyName: data.familyName,
       leader: {
-        name: "누군가",
-        role: "가족 대표",
-        avatarSrc: "/images/user.png",
+        id: data.leaderId,
+        nickname: data.leaderNickname,
+        profile: data.leaderProfile,
       },
     };
   };
 
   const handleSubmitCode = async () => {
-    if (!isCodeValid) return;
+    if (!isCodeValid || isChecking) return;
 
-    const family = await mockFetchFamilyByCode(trimmedCode);
+    setIsChecking(true);
+    setFamilyError("");
 
-    navigate("/signup/family-confirm", {
-      state: {
+    try {
+      const family = await fetchFamilyByCode(trimmedCode);
+
+      if (!family) {
+        setFamilyError("존재하지 않는 가족코드입니다.");
+        return;
+      }
+
+      // ✅ 다음 단계로 넘길 값 확인용 (연동 끝나면 이 log만 삭제)
+      console.log("FamilyCodeStep → FamilyConfirmStep 이동 with:", {
         email,
         password,
         kakaoId,
@@ -62,11 +129,47 @@ function FamilyCodeStep() {
         familyCode: trimmedCode,
         familyName: family.familyName,
         familyLeader: family.leader,
-      },
-    });
+      });
+
+      navigate("/signup/family-confirm", {
+        state: {
+          email,
+          password,
+          kakaoId,
+          agreedTerms,
+          nickname,
+          profileImageUrl,
+          birthdate,
+          calendarType,
+          phone,
+          familyCode: trimmedCode,
+          familyName: family.familyName,
+          familyLeader: family.leader,
+        },
+      });
+    } catch (e) {
+      console.error(e);
+      setFamilyError("가족코드를 확인하는 중 오류가 발생했어요.");
+    } finally {
+      setIsChecking(false);
+    }
   };
 
   const handleFirstFamily = () => {
+    // ✅ 가족코드 없이 가족 이름 생성 단계로 넘길 때 값 확인용
+    //    연동 끝나면 이 log만 삭제하면 됨
+    console.log("FamilyCodeStep → FamilyNameStep 이동 with:", {
+      email,
+      password,
+      kakaoId,
+      agreedTerms,
+      nickname,
+      profileImageUrl,
+      birthdate,
+      calendarType,
+      phone,
+    });
+
     navigate("/signup/family-name", {
       state: {
         email,
@@ -114,9 +217,15 @@ function FamilyCodeStep() {
           <TextInput
             name="familyCode"
             type="text"
-            placeholder="숫자 8자리로 입력해주세요"
+            placeholder="영문/숫자 8자리로 입력해주세요"
             value={familyCode}
-            onChange={(e) => setFamilyCode(e.target.value)}
+            onChange={(e) => {
+              // ✅ 자동으로 대문자로 변환해서 저장
+              const value = e.target.value.toUpperCase();
+              setFamilyCode(value);
+              setFamilyError("");
+            }}
+            errorMessage={familyError}
           />
         </section>
 
@@ -128,12 +237,12 @@ function FamilyCodeStep() {
             type="button"
             onClick={handleSubmitCode}
           >
-            입력완료
+            {isChecking ? "확인 중..." : "입력완료"}
           </Button>
 
           <Button
             size="large"
-            variant="focus" // 노랑 테두리 + 투명 배경
+            variant="focus"
             type="button"
             onClick={handleFirstFamily}
           >

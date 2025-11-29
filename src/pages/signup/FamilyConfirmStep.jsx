@@ -20,10 +20,43 @@ function FamilyConfirmStep() {
     phone,
     familyCode,
     familyName = "우리 가족",
-    familyLeader,
+    familyLeader, // { id, nickname, profile }
   } = location.state || {};
 
+  // ✅ 이 페이지가 받을 값 확인용 (연동 끝나면 삭제해도 됨)
+  console.log("FamilyConfirmStep 받은 값:", {
+    email,
+    password,
+    kakaoId,
+    agreedTerms,
+    nickname,
+    profileImageUrl,
+    birthdate,
+    calendarType,
+    phone,
+    familyCode,
+    familyName,
+    familyLeader,
+  });
+
   const handleConfirm = () => {
+    // ✅ 다음 단계로 넘길 값 확인용 (연동 끝나면 이 로그만 지우면 됨)
+    console.log("FamilyConfirmStep → Welcome 이동 with:", {
+      email,
+      password,
+      kakaoId,
+      agreedTerms,
+      nickname,
+      profileImageUrl,
+      birthdate,
+      calendarType,
+      phone,
+      familyCode,
+      familyName,
+      familyLeader,
+      showShareButton: false,
+    });
+
     navigate("/welcome", {
       state: {
         email,
@@ -44,11 +77,16 @@ function FamilyConfirmStep() {
   };
 
   // 대표 정보 기본값
-  const leaderProfile = familyLeader || {
-    name: "누군가",
-    // subtitle: "우리 가족 대표",
-    imageSrc: "/images/user.png",
-  };
+  // familyLeader: { id, nickname, profile }
+  const leaderProfile = familyLeader
+    ? {
+        name: familyLeader.nickname || "가족 대표",
+        imageSrc: familyLeader.profile || "/images/user.png",
+      }
+    : {
+        name: "가족 대표",
+        imageSrc: "/images/user.png",
+      };
 
   return (
     <div className="min-h-screen bg-bg-app flex flex-col">

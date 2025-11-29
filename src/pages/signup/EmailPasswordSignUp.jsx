@@ -5,72 +5,73 @@ import ProgressBar from "@/components/ProgressBar";
 import TextInput from "@/components/TextInput";
 import Button from "@/components/buttons/Button";
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
 function EmailPasswordSignUp() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // 약관 동의 페이지에서 넘어온 값
-  const { agreedTerms } = location.state || {};
+  const { agreedTerms, kakaoId } = location.state || {};
 
+  // 이메일 관련
   const [email, setEmail] = useState("");
   const [emailError, setEmailError] = useState("");
-  const [emailChecked, setEmailChecked] = useState(false); // ✅ 중복확인 완료 여부
+  const [emailChecked, setEmailChecked] = useState(false);
   const [isCheckingEmail, setIsCheckingEmail] = useState(false);
 
+  // 비밀번호 관련
   const [password, setPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [confirmError, setConfirmError] = useState("");
 
   const trimmedEmail = email.trim();
-  const trimmedPassword = password.trim();
-  const trimmedConfirm = confirm.trim();
 
-  // 비밀번호 형식: ResetPassword에서 썼던 규칙 그대로
+  // 비밀번호 규칙: 8~12자 + 영문 + 숫자 + 특수문자
   const passwordRegex =
     /^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*()_\-+=[\]{};:'",.<>/?`~\\|]).{8,12}$/;
 
-  const isPasswordValid =
-    trimmedPassword.length === 0 || passwordRegex.test(trimmedPassword);
-
-  const passwordError =
-    trimmedPassword && !isPasswordValid
-      ? "비밀번호는 8~12자의 영문, 숫자, 특수기호를 모두 포함해야 합니다."
-      : "";
-
-  const isConfirmMatch =
-    trimmedConfirm.length === 0 ||
-    (trimmedPassword && trimmedPassword === trimmedConfirm);
-
-  const confirmError =
-    trimmedConfirm && !isConfirmMatch ? "비밀번호가 일치하지 않습니다." : "";
+  const isPasswordValid = passwordRegex.test(password);
+  const isConfirmMatch = password.length > 0 && password === confirm;
 
   const showConfirmSuccessText =
-    trimmedPassword &&
-    trimmedConfirm &&
+    password.length > 0 &&
+    confirm.length > 0 &&
     isPasswordValid &&
-    trimmedPassword === trimmedConfirm &&
+    isConfirmMatch &&
+    !passwordError &&
     !confirmError;
 
-  // 다음 버튼 활성 조건: 이메일 + 중복확인 완료 + 비번 2개 OK
+  // 다음 버튼 활성 조건
   const canNext =
     trimmedEmail &&
     emailChecked &&
     !emailError &&
-    trimmedPassword &&
-    trimmedConfirm &&
     isPasswordValid &&
-    trimmedPassword === trimmedConfirm;
+    isConfirmMatch &&
+    !passwordError &&
+    !confirmError;
 
   const nextButtonVariant = canNext ? "primary" : "notFocus";
 
-  // --- 이메일 중복 확인 mock (나중에 실제 API로 교체) ---
-  const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
+  // --- API: 이메일 중복 확인 (true = 사용 가능) ---
+  const checkEmailDuplicate = async (emailToCheck) => {
+    const res = await fetch(
+      `${API_BASE_URL}/member/check-email?email=${encodeURIComponent(
+        emailToCheck
+      )}`,
+      {
+        method: "GET",
+      }
+    );
 
-  const mockCheckEmail = async (value) => {
-    // TODO: 서버 API로 교체
-    // 예시: "@dup.com" 으로 끝나는 메일은 이미 가입된 것으로 처리
-    await sleep(500);
-    const isDuplicate = value.endsWith("@dup.com");
-    return { isDuplicate };
+    if (!res.ok) {
+      throw new Error(`이메일 확인 실패 (status: ${res.status})`);
+    }
+
+    const isUsable = await res.json(); // true = 사용 가능
+
+    return { isUsable };
   };
 
   const handleCheckEmail = async () => {
@@ -85,14 +86,14 @@ function EmailPasswordSignUp() {
     setEmailChecked(false);
 
     try {
-      const result = await mockCheckEmail(trimmedEmail);
+      const { isUsable } = await checkEmailDuplicate(trimmedEmail);
 
-      if (result.isDuplicate) {
+      if (!isUsable) {
         setEmailError("이미 가입된 이메일입니다.");
         setEmailChecked(false);
       } else {
         setEmailError("");
-        setEmailChecked(true); // 중복확인 완료
+        setEmailChecked(true);
       }
     } catch (e) {
       console.error(e);
@@ -103,30 +104,96 @@ function EmailPasswordSignUp() {
     }
   };
 
-  const handleNext = () => {
-    if (!canNext) return;
+  // --- 비밀번호 실시간 검증 ---
 
-    // TODO: 실제 회원가입 흐름에 맞게 별명 입력 페이지 경로 조정
+  const handlePasswordChange = (value) => {
+    setPassword(value);
+
+    // 규칙 검사
+    if (!value) {
+      setPasswordError("");
+    } else if (!passwordRegex.test(value)) {
+      setPasswordError(
+        "비밀번호는 8~12자의 영문, 숫자, 특수기호를 모두 포함해야 합니다."
+      );
+    } else {
+      setPasswordError("");
+    }
+
+    // 확인칸과 일치 여부도 같이 업데이트
+    if (confirm.length > 0) {
+      if (value !== confirm) {
+        setConfirmError("비밀번호가 일치하지 않습니다.");
+      } else {
+        setConfirmError("");
+      }
+    }
+  };
+
+  const handleConfirmChange = (value) => {
+    setConfirm(value);
+
+    if (!value) {
+      setConfirmError("");
+      return;
+    }
+
+    if (value !== password) {
+      setConfirmError("비밀번호가 일치하지 않습니다.");
+    } else {
+      setConfirmError("");
+    }
+  };
+
+  // --- 다음 버튼 클릭 시: 비어 있는 값만 최종 체크 ---
+  const handleNext = () => {
+    let valid = true;
+
+    if (!trimmedEmail) {
+      setEmailError("이메일을 입력해주세요.");
+      valid = false;
+    } else if (!emailChecked) {
+      setEmailError("이메일 중복확인을 해주세요.");
+      valid = false;
+    }
+
+    if (!password) {
+      setPasswordError("비밀번호를 입력해주세요.");
+      valid = false;
+    }
+
+    if (!confirm) {
+      setConfirmError("비밀번호 확인을 입력해주세요.");
+      valid = false;
+    }
+
+    // 이미 실시간 검증으로 passwordError / confirmError는 채워져 있으니까
+    if (passwordError || confirmError || !isPasswordValid || !isConfirmMatch) {
+      valid = false;
+    }
+
+    if (!valid) return;
+
     navigate("/signup/nickname", {
       state: {
         email: trimmedEmail,
-        password: trimmedPassword,
+        password,
+        kakaoId,
         agreedTerms,
       },
     });
   };
 
-  // 중복확인 버튼 스타일 / 텍스트
+  // 중복확인 버튼 상태
   const emailButtonVariant = emailChecked
-    ? "focus" // 중복확인 완료 상태
+    ? "focus"
     : trimmedEmail
-    ? "primary" // 공백 제외하고 뭔가 입력되어 있으면 노랑(primary)
-    : "notFocus"; // 아무것도 없으면 회색(notFocus)
+    ? "primary"
+    : "notFocus";
   const emailButtonLabel = emailChecked ? "중복확인 완료" : "중복확인";
 
   return (
     <div className="min-h-screen bg-bg-app flex flex-col">
-      {/* 헤더 */}
       <Header
         bgClassName="bg-bg-app"
         leftIcon={
@@ -136,12 +203,9 @@ function EmailPasswordSignUp() {
         leftAriaLabel="뒤로가기"
       />
 
-      {/* 본문 */}
       <main className="flex-1 px-6 pt-4 pb-8 flex flex-col">
-        {/* 상단 프로그레스 바 + 타이틀 */}
         <section>
           <ProgressBar currentStep={1} totalSteps={7} className="mb-8" />
-
           <h1 className="text-xl font-semibold text-text-main leading-snug">
             이메일을 입력해주세요
           </h1>
@@ -158,7 +222,7 @@ function EmailPasswordSignUp() {
               onChange={(e) => {
                 setEmail(e.target.value);
                 setEmailError("");
-                setEmailChecked(false); // 이메일 수정하면 다시 중복확인 필요
+                setEmailChecked(false);
               }}
               errorMessage={emailError}
             />
@@ -175,32 +239,30 @@ function EmailPasswordSignUp() {
           </div>
         </section>
 
-        {/* 비밀번호 입력 영역 */}
+        {/* 비밀번호 */}
         <section className="mt-10">
           <h2 className="text-xl font-semibold text-text-main mb-6">
             비밀번호를 입력해주세요
           </h2>
 
           <div className="space-y-3">
-            {/* 비밀번호 */}
             <TextInput
               name="password"
               type="password"
               placeholder="새로운 비밀번호 입력"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => handlePasswordChange(e.target.value)}
               supportingText="비밀번호는 8~12자로 영문 대 소문자, 숫자, 특수기호를 조합해서 사용해주세요."
               errorMessage={passwordError}
               showPasswordToggle
             />
 
-            {/* 비밀번호 확인 */}
             <TextInput
               name="passwordConfirm"
               type="password"
               placeholder="비밀번호 입력 확인"
               value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
+              onChange={(e) => handleConfirmChange(e.target.value)}
               supportingText={
                 showConfirmSuccessText ? "비밀번호가 일치합니다" : undefined
               }
@@ -210,7 +272,6 @@ function EmailPasswordSignUp() {
           </div>
         </section>
 
-        {/* 하단 다음 버튼 */}
         <div className="mt-auto">
           <Button
             size="large"
