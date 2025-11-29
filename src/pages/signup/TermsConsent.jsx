@@ -14,7 +14,7 @@ function TermsConsent() {
   const location = useLocation();
 
   // 카카오 로그인에서 넘어온 값 (일반 회원가입이면 undefined)
-  const { kakaoId, email } = location.state || {};
+  const { kakaoId, email, inviteCode } = location.state || {};
 
   const [checked, setChecked] = useState({
     service: false,
@@ -55,6 +55,7 @@ function TermsConsent() {
           kakaoId,
           email,
           agreedTerms: checked,
+          inviteCode,
         },
       });
     } else {

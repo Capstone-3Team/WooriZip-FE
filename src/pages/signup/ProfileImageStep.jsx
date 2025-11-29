@@ -16,6 +16,7 @@ function ProfileImageStep() {
     kakaoId,
     agreedTerms,
     nickname = "",
+    inviteCode,
   } = location.state || {};
 
   // 선택한 프로필 이미지 (프론트 미리보기용 URL)
@@ -61,6 +62,7 @@ function ProfileImageStep() {
         agreedTerms,
         nickname,
         profileImageUrl, // 선택 안 했으면 null
+        inviteCode,
       },
     });
   };
