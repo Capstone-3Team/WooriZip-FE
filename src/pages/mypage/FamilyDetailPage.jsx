@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { shareFamilyInvite } from "@/utils/shareFamilyInvite";
 import Header from "@/layouts/Header";
 import FamilyProfile from "@/components/FamilyProfile"; // 경로는 프로젝트 구조에 맞게 수정
 
@@ -24,12 +25,8 @@ function FamilyDetailPage() {
   };
 
   const handleCopyCode = async () => {
-    try {
-      await navigator.clipboard.writeText(familyCode);
-      // TODO: 토스트나 안내 문구로 "복사되었습니다" 표시
-    } catch (e) {
-      console.error(e);
-    }
+    // 로그인 상태에서 이미 가지고 있는 familyCode를 그대로 사용
+    shareFamilyInvite(familyCode);
   };
 
   return (

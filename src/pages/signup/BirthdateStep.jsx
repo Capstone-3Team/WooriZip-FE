@@ -10,8 +10,15 @@ function BirthdateStep() {
   const location = useLocation();
 
   // 이전 단계에서 넘어온 값들 (필요하면 더 추가해서 이어 쓰면 됨)
-  const { email, password, kakaoId, agreedTerms, nickname, profileImageUrl } =
-    location.state || {};
+  const {
+    email,
+    password,
+    kakaoId,
+    agreedTerms,
+    nickname,
+    profileImageUrl,
+    inviteCode,
+  } = location.state || {};
 
   const [birthdate, setBirthdate] = useState("");
   const [calendarType, setCalendarType] = useState("solar"); // 양력: solar, 음력: lunar
@@ -44,6 +51,7 @@ function BirthdateStep() {
         profileImageUrl,
         birthdate: trimmedBirthdate,
         calendarType,
+        inviteCode,
       },
     });
   };

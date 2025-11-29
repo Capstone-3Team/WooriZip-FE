@@ -21,9 +21,12 @@ function FamilyCodeStep() {
     birthdate,
     calendarType,
     phone,
+    inviteCode,
   } = location.state || {};
 
-  const [familyCode, setFamilyCode] = useState("");
+  const [familyCode, setFamilyCode] = useState(
+    (inviteCode || "").toUpperCase()
+  );
   const [familyError, setFamilyError] = useState("");
   const [isChecking, setIsChecking] = useState(false);
 

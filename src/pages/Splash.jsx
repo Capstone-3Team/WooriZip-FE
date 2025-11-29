@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import Button from "@/components/buttons/Button";
 import ImageCarousel from "@/components/ImageCarousel";
 import SlideIndicator from "@/components/SlideIndicator";
@@ -12,10 +12,17 @@ const slides = [
 
 function Splash() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams(); // 초대 코드 읽기용
   const [currentIndex, setCurrentIndex] = useState(0); // 공통 state
 
+  // /splash?code=XXXX 로 들어온 경우, 초대코드 추출
+  const inviteCode = searchParams.get("code") || null;
+
   const handleStart = () => {
-    navigate("/login");
+    // 초대코드가 있으면 state로 넘겨주기
+    navigate("/login", {
+      state: inviteCode ? { inviteCode } : undefined,
+    });
   };
 
   return (

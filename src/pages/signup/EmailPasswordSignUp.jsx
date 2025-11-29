@@ -11,7 +11,7 @@ function EmailPasswordSignUp() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const { agreedTerms, kakaoId } = location.state || {};
+  const { agreedTerms, kakaoId, inviteCode } = location.state || {};
 
   // 이메일 관련
   const [email, setEmail] = useState("");
@@ -180,6 +180,7 @@ function EmailPasswordSignUp() {
         password,
         kakaoId,
         agreedTerms,
+        inviteCode,
       },
     });
   };

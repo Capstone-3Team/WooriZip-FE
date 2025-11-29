@@ -1,10 +1,14 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import TextInput from "@/components/TextInput";
 import Button from "@/components/buttons/Button";
 
 function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // /splash에서 넘어온 초대코드 (없으면 undefined)
+  const { inviteCode } = location.state || {};
 
   const [idOrEmail, setIdOrEmail] = useState(""); // 아이디/이메일 입력 값
   const [password, setPassword] = useState(""); // 비밀번호 입력 값
@@ -71,6 +75,7 @@ function Login() {
           state: {
             kakaoId: result.kakaoUser.id,
             email: result.kakaoUser.email,
+            inviteCode, // /splash에서 넘어온 초대코드도 함께 전달
           },
         });
       }
@@ -81,7 +86,9 @@ function Login() {
 
   // 일반 회원가입 버튼은 kakao 정보 없이 약관 페이지로 이동
   const goToSignUp = () => {
-    navigate("/terms-consent");
+    navigate("/terms-consent", {
+      state: inviteCode ? { inviteCode } : undefined,
+    });
   };
 
   const goToResetPassword = () => {

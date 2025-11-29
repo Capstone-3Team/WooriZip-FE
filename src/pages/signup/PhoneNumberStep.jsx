@@ -18,6 +18,7 @@ function PhoneNumberStep() {
     profileImageUrl,
     birthdate,
     calendarType: initialCalendarType = "solar",
+    inviteCode,
   } = location.state || {};
 
   const [phone, setPhone] = useState("");
@@ -51,6 +52,7 @@ function PhoneNumberStep() {
         birthdate,
         calendarType: initialCalendarType, // 수정 불가, 그대로 전달
         phone: trimmedPhone,
+        inviteCode,
       },
     });
   };
