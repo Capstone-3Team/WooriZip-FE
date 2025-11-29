@@ -4,6 +4,8 @@ import Header from "@/layouts/Header";
 import TextInput from "@/components/TextInput";
 import Button from "@/components/buttons/Button";
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
 function SendEmail() {
   const navigate = useNavigate();
 
@@ -43,46 +45,92 @@ function SendEmail() {
   const verifyButtonVariant = trimmedCode ? "primary" : "notFocus";
   const nextButtonVariant = codeStatus === "success" ? "primary" : "notFocus";
 
-  const handleSendCode = () => {
-    // 이메일이 비어있으면 에러 메시지만 보여주고 종료
+  // 1) 인증번호 이메일 전송: POST /auth/password/email { email }
+  const handleSendCode = async () => {
     if (!trimmedEmail) {
       setEmailError("이메일을 입력해주세요.");
       return;
     }
 
-    setEmailError("");
-    setCodeError("");
-    setCodeStatus("idle");
+    try {
+      setEmailError("");
+      setCodeError("");
+      setCodeStatus("idle");
 
-    // TODO: 실제 인증번호 전송 API 연동
-    console.log("send code to:", trimmedEmail);
+      const response = await fetch(`${API_BASE_URL}/auth/password/email`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email: trimmedEmail }),
+      });
 
-    // 3분 타이머 시작 (또는 재시작)
-    setTimeLeft(180);
+      const text = await response.text();
+
+      if (!response.ok) {
+        throw new Error(text || "인증번호 전송에 실패했습니다.");
+      }
+
+      console.log("인증번호 전송 성공:", text);
+
+      // 3분 타이머 시작 (또는 재시작)
+      setTimeLeft(180);
+    } catch (error) {
+      console.error("인증번호 전송 실패:", error);
+      setEmailError(error.message || "인증번호 전송 중 오류가 발생했습니다.");
+      setTimeLeft(0);
+    }
   };
 
-  const handleVerifyCode = () => {
+  // 2) 인증번호 검증: POST /auth/password/verify { email, code }
+  const handleVerifyCode = async () => {
+    if (!trimmedEmail) {
+      setEmailError("이메일을 먼저 입력하고 인증번호를 받아주세요.");
+      return;
+    }
+
     if (!trimmedCode) {
       setCodeError("인증번호를 입력해주세요.");
       setCodeStatus("error");
       return;
     }
 
-    // TODO: 실제 서버 검증으로 교체
-    // 여기서는 예시로 "123456" 만 맞는 걸로 처리
-    if (trimmedCode === "123456") {
+    try {
+      setCodeError("");
+      const response = await fetch(`${API_BASE_URL}/auth/password/verify`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: trimmedEmail,
+          code: trimmedCode,
+        }),
+      });
+
+      const text = await response.text();
+
+      if (!response.ok) {
+        throw new Error(text || "인증번호가 일치하지 않습니다.");
+      }
+
+      console.log("인증번호 검증 성공:", text);
       setCodeStatus("success");
       setCodeError("");
-    } else {
+    } catch (error) {
+      console.error("인증번호 검증 실패:", error);
       setCodeStatus("error");
-      setCodeError("인증번호가 일치하지 않습니다.");
+      setCodeError(error.message || "인증번호가 일치하지 않습니다.");
     }
   };
 
+  // 3) 다음 단계로: 인증 성공시 /reset-password 로 이동, 이메일 같이 넘김
   const handleNext = () => {
     if (codeStatus !== "success") return;
-    // TODO: 다음 단계(새 비밀번호 설정 페이지)로 이동
-    navigate("/reset-password");
+
+    navigate("/reset-password", {
+      state: { email: trimmedEmail },
+    });
   };
 
   return (
