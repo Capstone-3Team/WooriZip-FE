@@ -30,11 +30,10 @@ function ChangePasswordCurrent() {
     e.preventDefault();
     if (!canSubmit) return;
 
-    // TODO: 여기서 서버에 기존 비밀번호 검증 API 호출
-
-    // 기존 비밀번호가 맞으면 2단계(신규 비밀번호 입력) 페이지로 이동
-    // ResetPassword를 이 경로에 매핑해서 사용하면 됨.
-    navigate("/mypage/reset-password");
+    // 1단계에서는 서버 호출 없이, 기존 비밀번호를 state로 넘겨줌
+    navigate("/mypage/reset-password", {
+      state: { currentPassword: trimmedPassword },
+    });
   };
 
   return (
@@ -43,10 +42,7 @@ function ChangePasswordCurrent() {
       <Header
         title="비밀번호 변경"
         bgClassName="bg-bg-app"
-        leftIcon={
-          // X 아이콘 (파일명은 프로젝트에 맞게 조정)
-          <img src="/icons/close.svg" alt="닫기" className="w-8 h-8" />
-        }
+        leftIcon={<img src="/icons/close.svg" alt="닫기" className="w-8 h-8" />}
         onLeftClick={() => navigate(-1)}
         leftAriaLabel="닫기"
       />
