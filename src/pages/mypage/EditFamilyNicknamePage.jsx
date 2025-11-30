@@ -1,15 +1,19 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/layouts/Header";
 import TextInput from "@/components/TextInput";
 import Button from "@/components/buttons/Button";
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
 export default function EditFamilyNicknamePage() {
   const navigate = useNavigate();
 
   const [familyNickname, setFamilyNickname] = useState("");
-  // TODO: 실제 데이터에서 마지막 수정자 받아오기
-  const lastEditorNickname = "귀요미";
+  const [lastEditorNickname, setLastEditorNickname] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   const trimmed = familyNickname.trim();
   const maxLength = 10;
@@ -24,12 +28,81 @@ export default function EditFamilyNicknamePage() {
 
   const handleBack = () => navigate(-1);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!canSubmit) return;
+  // 현재 가족 이름 + 마지막 수정자 조회
+  useEffect(() => {
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      navigate("/login");
+      return;
+    }
 
-    // TODO: 가족 별명 수정 API 호출
-    navigate(-1);
+    const fetchFamilyNameInfo = async () => {
+      try {
+        setIsLoading(true);
+        const res = await fetch(`${API_BASE_URL}/mypage/family/name/info`, {
+          method: "GET",
+          headers: {
+            accept: "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!res.ok) {
+          throw new Error("가족 별명 정보를 불러오지 못했습니다.");
+        }
+
+        const data = await res.json();
+        // Swagger 예시: { familyName, lastModifiedBy }
+        setFamilyNickname(data.familyName || "");
+        setLastEditorNickname(data.lastModifiedBy || "");
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchFamilyNameInfo();
+  }, [navigate]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!canSubmit || isSubmitting) return;
+
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmitError("");
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/mypage/family/name`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ familyName: trimmed }),
+      });
+
+      if (!res.ok) {
+        throw new Error("가족 별명을 수정하지 못했습니다.");
+      }
+
+      // 성공 시 이전 페이지로
+      navigate(-1);
+    } catch (error) {
+      console.error(error);
+      setSubmitError(
+        "가족 별명을 수정하지 못했어요. 잠시 후 다시 시도해주세요."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -51,6 +124,11 @@ export default function EditFamilyNicknamePage() {
             <h1 className="text-xl font-semibold text-text-main leading-snug">
               가족 별명을 입력해주세요
             </h1>
+            {isLoading && (
+              <p className="mt-2 text-xs text-gray-60">
+                가족 정보를 불러오는 중이에요…
+              </p>
+            )}
           </section>
 
           <section className="mt-6">
@@ -66,13 +144,22 @@ export default function EditFamilyNicknamePage() {
           </section>
 
           <div className="mt-auto">
+            {submitError && (
+              <p className="mb-2 text-xs text-red-500">{submitError}</p>
+            )}
+
             {/* 마지막 수정자 텍스트 (오른쪽 정렬) */}
             <p className="mb-2 text-xs text-text-main text-right">
-              마지막 수정 : {lastEditorNickname}
+              마지막 수정 : {lastEditorNickname || "없음"}
             </p>
 
-            <Button size="large" variant={submitVariant} type="submit">
-              저장
+            <Button
+              size="large"
+              variant={submitVariant}
+              type="submit"
+              disabled={!canSubmit || isSubmitting}
+            >
+              {isSubmitting ? "저장 중..." : "저장"}
             </Button>
           </div>
         </form>
