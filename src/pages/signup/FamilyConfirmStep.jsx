@@ -1,8 +1,11 @@
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Header from "@/layouts/Header";
 import ProgressBar from "@/components/ProgressBar";
 import Button from "@/components/buttons/Button";
 import FamilyProfile from "@/components/FamilyProfile";
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 function FamilyConfirmStep() {
   const navigate = useNavigate();
@@ -19,9 +22,64 @@ function FamilyConfirmStep() {
     calendarType,
     phone,
     familyCode,
-    familyName = "우리 가족",
-    familyLeader, // { id, nickname, profile }
   } = location.state || {};
+
+  // 가족 정보 상태
+  const [familyName, setFamilyName] = useState(
+    location.state?.familyName || "우리 가족"
+  );
+  const [familyLeader, setFamilyLeader] = useState(
+    location.state?.familyLeader // { id, nickname, profile }
+  );
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  // 가족코드로 가족 정보 조회
+  useEffect(() => {
+    if (!familyCode) return;
+
+    const fetchFamilyInfo = async () => {
+      try {
+        setIsLoading(true);
+        setErrorMessage("");
+
+        const res = await fetch(
+          `${API_BASE_URL}/member/family-info?inviteCode=${encodeURIComponent(
+            familyCode
+          )}`,
+          {
+            method: "GET",
+            headers: {
+              accept: "application/json",
+            },
+          }
+        );
+
+        if (!res.ok) {
+          throw new Error("가족 정보를 불러오지 못했습니다.");
+        }
+
+        const data = await res.json();
+        // Swagger 예시 구조:
+        // { familyName, leaderId, leaderNickname, leaderProfile }
+        setFamilyName(data.familyName || "우리 가족");
+        setFamilyLeader({
+          id: data.leaderId,
+          nickname: data.leaderNickname,
+          profile: data.leaderProfile,
+        });
+      } catch (error) {
+        console.error(error);
+        setErrorMessage(
+          "가족 정보를 불러오지 못했어요. 가족코드를 다시 확인해주세요."
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchFamilyInfo();
+  }, [familyCode]);
 
   const handleConfirm = () => {
     navigate("/welcome", {
@@ -38,13 +96,13 @@ function FamilyConfirmStep() {
         familyCode,
         familyName,
         familyLeader,
-        showShareButton: false, // 기존 가족에 합류 → 공유 버튼 없음 (왼쪽 화면)
+        // 기존 가족에 합류 → 공유 버튼 없음 (왼쪽 화면)
+        showShareButton: false,
       },
     });
   };
 
   // 대표 정보 기본값
-  // familyLeader: { id, nickname, profile }
   const leaderProfile = familyLeader
     ? {
         name: familyLeader.nickname || "가족 대표",
@@ -79,6 +137,15 @@ function FamilyConfirmStep() {
             <br />
             가족 별명은 설정에서 수정할 수 있어요.
           </p>
+
+          {isLoading && (
+            <p className="mt-2 text-xs text-gray-40">
+              가족 정보를 불러오는 중이에요…
+            </p>
+          )}
+          {errorMessage && (
+            <p className="mt-2 text-xs text-red-500">{errorMessage}</p>
+          )}
         </section>
 
         {/* 가족 별명 박스 */}
@@ -115,6 +182,7 @@ function FamilyConfirmStep() {
             variant="primary"
             type="button"
             onClick={handleConfirm}
+            disabled={isLoading || !!errorMessage}
           >
             확인
           </Button>
