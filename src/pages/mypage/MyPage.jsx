@@ -1,9 +1,70 @@
+import { useEffect, useState } from "react";
 import Header from "@/layouts/Header";
 import BottomNav from "@/layouts/BottomNav";
 import { useNavigate } from "react-router-dom";
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
 function MyPage() {
   const navigate = useNavigate();
+
+  const [mainData, setMainData] = useState({
+    profileImage: null,
+    nickname: "",
+    familyName: "",
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  // 마이페이지 메인 정보 조회 (/mypage/main)
+  useEffect(() => {
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+
+    const fetchMyPageMain = async () => {
+      try {
+        setIsLoading(true);
+        setErrorMessage("");
+
+        const res = await fetch(`${API_BASE_URL}/mypage/main`, {
+          method: "GET",
+          headers: {
+            accept: "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!res.ok) {
+          throw new Error("마이페이지 정보를 불러오지 못했습니다.");
+        }
+
+        const data = await res.json();
+        // Swagger 예시: { profileImage, nickname, familyName }
+        setMainData({
+          profileImage: data.profileImage || null,
+          nickname: data.nickname || "",
+          familyName: data.familyName || "",
+        });
+      } catch (error) {
+        console.error(error);
+        setErrorMessage("마이페이지 정보를 불러오지 못했어요.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchMyPageMain();
+  }, [navigate]);
+
+  const displayNickname = isLoading
+    ? "불러오는 중..."
+    : mainData.nickname || "내 이름";
+
+  const displayFamilyName = mainData.familyName || "우리 가족";
+
   return (
     <div className="min-h-screen bg-bg-app pb-24">
       {/* 상단 헤더 */}
@@ -15,16 +76,36 @@ function MyPage() {
           {/* 프로필 영역 */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              {/* 프로필 아이콘 자리 */}
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gray-20">
-                {/* 나중에 실제 아이콘/이미지로 교체 */}
-                <span className="text-2xl text-gray-40">👤</span>
+              {/* 프로필 이미지 */}
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gray-20 overflow-hidden">
+                {mainData.profileImage ? (
+                  <img
+                    src={mainData.profileImage}
+                    alt="프로필 이미지"
+                    className="h-full w-full object-cover"
+                    onError={(e) => {
+                      // blob URL 깨지거나 로딩 실패 시 기본 아이콘으로 대체
+                      e.currentTarget.src = "/icons/user.svg";
+                    }}
+                  />
+                ) : (
+                  <img
+                    src="/icons/user.svg"
+                    alt="기본 프로필"
+                    className="h-8 w-8 opacity-70"
+                  />
+                )}
               </div>
 
               <div className="flex flex-col">
                 <span className="text-lg font-semibold text-text-main">
-                  귀요미
+                  {displayNickname}
                 </span>
+                {errorMessage && (
+                  <span className="mt-1 text-xs text-red-500">
+                    {errorMessage}
+                  </span>
+                )}
               </div>
             </div>
 
@@ -35,7 +116,6 @@ function MyPage() {
               className="p-1"
               onClick={() => navigate("/mypage/profile")}
             >
-              {/* 아이콘은 프로젝트에 맞게 교체 */}
               <img
                 src="/icons/edit-single.svg"
                 alt="프로필 편집"
@@ -51,7 +131,7 @@ function MyPage() {
             onClick={() => navigate("/mypage/family-detail")}
           >
             <span className="text-sm font-medium text-text-main">
-              우주 최강 가족
+              {displayFamilyName}
             </span>
             <img src="/icons/arrow-right.svg" alt="" className="h-5 w-5" />
           </button>

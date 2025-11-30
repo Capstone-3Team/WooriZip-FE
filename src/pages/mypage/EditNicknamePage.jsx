@@ -4,9 +4,14 @@ import Header from "@/layouts/Header";
 import TextInput from "@/components/TextInput";
 import Button from "@/components/buttons/Button";
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
 export default function EditNicknamePage() {
   const navigate = useNavigate();
   const [nickname, setNickname] = useState("");
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   const trimmedNickname = nickname.trim();
   const maxLength = 10;
@@ -21,12 +26,42 @@ export default function EditNicknamePage() {
 
   const handleBack = () => navigate(-1);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!canSubmit) return;
+    if (!canSubmit || isSubmitting) return;
 
-    // TODO: 별명 수정 API 호출
-    navigate(-1);
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmitError("");
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/mypage/nickname`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ value: trimmedNickname }),
+      });
+
+      if (!res.ok) {
+        throw new Error("별명을 수정하지 못했습니다.");
+      }
+
+      // 성공 시 이전 화면으로
+      navigate(-1);
+    } catch (error) {
+      console.error(error);
+      setSubmitError("별명을 수정하지 못했어요. 잠시 후 다시 시도해주세요.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -54,15 +89,17 @@ export default function EditNicknamePage() {
               placeholder="별명 입력"
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
-              errorMessage={errorMessage}
-              supportingText={!errorMessage ? "최대 10자까지 가능해요" : ""}
+              errorMessage={errorMessage || submitError}
+              supportingText={
+                !errorMessage && !submitError ? "최대 10자까지 가능해요" : ""
+              }
               maxLength={maxLength}
             />
           </section>
 
           <div className="mt-auto">
             <Button size="large" variant={submitVariant} type="submit">
-              수정 완료
+              {isSubmitting ? "수정 중..." : "수정 완료"}
             </Button>
           </div>
         </form>

@@ -4,11 +4,16 @@ import Header from "@/layouts/Header";
 import TextInput from "@/components/TextInput";
 import Button from "@/components/buttons/Button";
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
 export default function EditPhonePage() {
   const navigate = useNavigate();
 
   const [phone, setPhone] = useState("");
   const [error, setError] = useState("");
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   const trimmedPhone = phone.trim();
 
@@ -33,15 +38,47 @@ export default function EditPhonePage() {
     if (value === "" || onlyDigits.test(value)) {
       setPhone(value);
       setError("");
+      setSubmitError("");
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!canSubmit) return;
+    if (!canSubmit || isSubmitting) return;
 
-    // TODO: 휴대폰번호 수정 API 호출
-    navigate(-1);
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmitError("");
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/mypage/phone`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ value: trimmedPhone }),
+      });
+
+      if (!res.ok) {
+        throw new Error("휴대폰번호를 수정하지 못했습니다.");
+      }
+
+      navigate(-1);
+    } catch (err) {
+      console.error(err);
+      setSubmitError(
+        "휴대폰번호를 수정하지 못했어요. 잠시 후 다시 시도해주세요."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -70,14 +107,16 @@ export default function EditPhonePage() {
               placeholder="ex) 01012345678"
               value={phone}
               onChange={handleChange}
-              errorMessage={phoneError || error}
-              supportingText={!phoneError ? "숫자만 입력해주세요" : ""}
+              errorMessage={phoneError || error || submitError}
+              supportingText={
+                !phoneError && !submitError ? "숫자만 입력해주세요" : ""
+              }
             />
           </section>
 
           <div className="mt-auto">
             <Button size="large" variant={submitVariant} type="submit">
-              수정 완료
+              {isSubmitting ? "수정 중..." : "수정 완료"}
             </Button>
           </div>
         </form>

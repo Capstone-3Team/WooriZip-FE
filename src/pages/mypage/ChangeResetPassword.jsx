@@ -1,14 +1,22 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import Header from "@/layouts/Header";
 import TextInput from "@/components/TextInput";
 import Button from "@/components/buttons/Button";
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
 function ChangeResetPassword() {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // 1단계에서 넘겨준 기존 비밀번호
+  const currentPassword = location.state?.currentPassword || "";
 
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [submitError, setSubmitError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const trimmedPassword = password.trim();
   const trimmedConfirm = confirm.trim();
@@ -43,18 +51,60 @@ function ChangeResetPassword() {
     trimmedPassword &&
     trimmedConfirm &&
     isPasswordValid &&
-    trimmedPassword === trimmedConfirm;
+    trimmedPassword === trimmedConfirm &&
+    !!currentPassword;
 
   const submitVariant = canSubmit ? "primary" : "notFocus";
 
-  const handleSubmit = (e) => {
+  // currentPassword 없이 직접 주소로 들어온 경우 1단계로 돌려보내기
+  useEffect(() => {
+    if (!currentPassword) {
+      navigate("/mypage/change-password", { replace: true });
+    }
+  }, [currentPassword, navigate]);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!canSubmit) return;
+    if (!canSubmit || isSubmitting) return;
 
-    // TODO: 실제 비밀번호 변경 API 연동
-    console.log("reset password:", trimmedPassword);
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      navigate("/login");
+      return;
+    }
 
-    navigate("/mypage/profile"); // 변경 후 마이페이지로 이동
+    setIsSubmitting(true);
+    setSubmitError("");
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/mypage/password`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          oldPassword: currentPassword,
+          newPassword: trimmedPassword,
+        }),
+      });
+
+      if (!res.ok) {
+        // 서버에서 400 등으로 기존 비밀번호 불일치/검증 실패를 내려줄 수 있음
+        throw new Error("비밀번호를 변경하지 못했습니다.");
+      }
+
+      // 성공 시 프로필 페이지나 이전 화면으로 이동
+      navigate("/mypage/profile", { replace: true });
+    } catch (error) {
+      console.error(error);
+      setSubmitError(
+        "비밀번호를 변경하지 못했어요. 기존 비밀번호가 맞는지 다시 한 번 확인해주세요."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -107,12 +157,13 @@ function ChangeResetPassword() {
             </div>
           </section>
 
-          {/* 하단 버튼 */}
-          {/* 버튼을 감싼 div에 mt-auto 
-          → 남는 공간을 전부 위로 밀어서 버튼이 항상 아래 + pb-8만큼 위에 위치 */}
+          {/* 하단 버튼 + 에러 메시지 */}
           <div className="mt-auto">
+            {submitError && (
+              <p className="mb-2 text-xs text-red-500">{submitError}</p>
+            )}
             <Button size="large" variant={submitVariant} type="submit">
-              변경 완료
+              {isSubmitting ? "변경 중..." : "변경 완료"}
             </Button>
           </div>
         </form>
