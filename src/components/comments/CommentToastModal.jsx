@@ -10,7 +10,6 @@ export default function CommentToastModal({
   commentValue,
   onChangeComment,
   onSubmitComment,
-  // ✏️ 추가: 댓글 수정/삭제 핸들러
   onStartEditComment,
   onRequestDeleteComment,
 }) {
@@ -20,7 +19,6 @@ export default function CommentToastModal({
 
   const hasComments = comments.length > 0;
 
-  // 모달 닫힐 때 더보기 메뉴도 같이 초기화
   const handleClose = () => {
     setOpenCommentMenuId(null);
     onClose?.();
@@ -35,13 +33,10 @@ export default function CommentToastModal({
         className="relative w-full max-h-[90%] min-h-[70%] rounded-t-3xl bg-bg-app px-5 pt-3 pb-24 shadow-[0_-4px_12px_rgba(0,0,0,0.15)] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* 상단 핸들바 */}
         <div className="mx-auto mb-3 h-1 w-16 rounded-full bg-black/80" />
 
-        {/* 헤더 */}
         <header className="mb-4 flex items-center justify-center">
           <h2 className="text-base font-semibold text-text-main">댓글</h2>
-
           <button
             type="button"
             onClick={handleClose}
@@ -52,32 +47,30 @@ export default function CommentToastModal({
           </button>
         </header>
 
-        {/* 스크롤 영역 */}
         <div className="h-full overflow-y-auto pr-1">
           {hasComments ? (
             <ul className="space-y-6">
               {comments.map((comment) => {
-                const isMyComment = comment.isMine;
                 const isMenuOpen = openCommentMenuId === comment.id;
 
                 return (
                   <li key={comment.id} className="relative">
                     <CommentItem
+                      key={comment.id}
                       authorName={comment.authorName}
                       dateLabel={comment.dateLabel}
                       content={comment.content}
-                      onMoreClick={
-                        isMyComment
-                          ? () =>
-                              setOpenCommentMenuId((prev) =>
-                                prev === comment.id ? null : comment.id
-                              )
-                          : undefined
+                      imageSrc={comment.authorProfileImageUrl}
+                      onMoreClick={() =>
+                        setOpenCommentMenuId((prev) =>
+                          prev === comment.id ? null : comment.id
+                        )
                       }
                     />
 
-                    {isMyComment && isMenuOpen && (
-                      <div className="absolute right-0 bottom-full mb-2 z-20">
+                    {isMenuOpen && (
+                      // 🔽 여기만 수정: 위가 아니라 아래로 뜨도록
+                      <div className="absolute right-1 top-8 z-20">
                         <MoreMenuBox
                           variant="icon"
                           items={[
@@ -114,7 +107,6 @@ export default function CommentToastModal({
           )}
         </div>
 
-        {/* 입력창 */}
         <div className="mt-3">
           <CommentInputBar
             value={commentValue}
