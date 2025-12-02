@@ -66,13 +66,13 @@ function MyPage() {
   const displayFamilyName = mainData.familyName || "우리 가족";
 
   return (
-    <div className="min-h-screen bg-bg-app pb-24">
+    <div className="min-h-screen bg-yellow-20 pb-24">
       {/* 상단 헤더 */}
       <Header variant="plain" title="내 정보" />
 
       <main className="px-4 pt-4 pb-10 overflow-y-auto">
         {/* 내 정보 카드 */}
-        <section className="rounded-xl bg-yellow-20 shadow-[0_2px_6px_rgba(0,0,0,0.08)] p-4">
+        <section className="rounded-xl bg-bg-app shadow-[0_2px_6px_rgba(0,0,0,0.08)] p-4">
           {/* 프로필 영역 */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -141,7 +141,7 @@ function MyPage() {
         <section className="mt-8">
           <h2 className="text-lg font-semibold text-text-main">기타 설정</h2>
 
-          <div className="mt-3 overflow-hidden rounded-xl bg-yellow-20">
+          <div className="mt-3 overflow-hidden rounded-xl bg-bg-app">
             <button
               type="button"
               className="flex w-full items-center justify-between px-4 py-4"
@@ -172,7 +172,7 @@ function MyPage() {
         <section className="mt-8 mb-4">
           <h2 className="text-lg font-semibold text-text-main">계정 및 권한</h2>
 
-          <div className="mt-3 overflow-hidden rounded-xl bg-yellow-20">
+          <div className="mt-3 overflow-hidden rounded-xl bg-bg-app">
             {/* 버전 정보 */}
             <div className="flex w-full items-center justify-between px-4 py-4">
               <span className="text-sm font-medium text-text-main">
