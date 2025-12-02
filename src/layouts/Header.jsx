@@ -75,7 +75,7 @@ function Header({
   // 2번: 배경 없이, 왼쪽 정렬 큰 텍스트
   if (variant === "plain") {
     return (
-      <header className={`${baseClass} ${className}`}>
+      <header className={`${baseClass} ${bgClassName} ${className}`}>
         {/* 밖에서 titleClassName 들어오면 Tailwind는 뒤에 오는 클래스가 이겨서 사실상 titleClassName이 적용됨
         + 위치 지정 안해주면 기본적으로 왼쪽 정렬됨 */}
         <h1 className={`text-2xl font-semibold`}>{title}</h1>
