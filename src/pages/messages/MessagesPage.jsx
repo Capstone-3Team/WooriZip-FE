@@ -34,7 +34,7 @@ export default function MessagesPage() {
 
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
-  // 받은 쪽지 전체 조회 (/message/received)
+  // 받은 쪽지 + 가족 프로필 한번에 불러오기
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
     if (!token) {
@@ -42,12 +42,13 @@ export default function MessagesPage() {
       return;
     }
 
-    const fetchReceivedMessages = async () => {
+    const fetchData = async () => {
       try {
         setIsLoading(true);
         setErrorMessage("");
 
-        const res = await fetch(`${API_BASE_URL}/message/received`, {
+        // 1) 받은 쪽지 목록
+        const receivedRes = await fetch(`${API_BASE_URL}/message/received`, {
           method: "GET",
           headers: {
             accept: "application/json",
@@ -55,25 +56,50 @@ export default function MessagesPage() {
           },
         });
 
-        if (!res.ok) {
+        if (!receivedRes.ok) {
           throw new Error("쪽지함을 불러오지 못했습니다.");
         }
 
-        const data = await res.json();
-        // Swagger 예시: [{ id, senderNickname, createdAt, ... }]
-        const normalized = (data || []).map((item) => ({
+        const receivedData = await receivedRes.json();
+
+        // 2) 가족 프로필 목록 (MessageWritePage에서 쓰던 API 그대로)
+        const membersRes = await fetch(
+          `${API_BASE_URL}/message/family-members`,
+          {
+            method: "GET",
+            headers: {
+              accept: "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (!membersRes.ok) {
+          throw new Error("가족 프로필을 불러오지 못했습니다.");
+        }
+
+        const membersData = await membersRes.json();
+
+        // nickname -> profileImage 매핑
+        const memberImageMap = new Map(
+          (membersData || []).map((m) => [m.nickname, m.profileImage || null])
+        );
+
+        // 3) 쪽지 + 프로필 이미지 합치기
+        const normalized = (receivedData || []).map((item) => ({
           id: item.id,
           name: item.senderNickname,
-          receivedDate: item.createdAt, // ISO 문자열
+          receivedDate: item.createdAt,
           dateLabel: formatDateLabel(item.createdAt),
-          // 백엔드에 읽음 여부 필드가 있다면 활용 (없으면 모두 읽은 상태로)
           isUnread:
             item.isRead !== undefined
               ? !item.isRead
               : item.read !== undefined
               ? !item.read
               : false,
-          content: item.content || "", // 상세 페이지에서 다시 조회하더라도 일단 비워두기
+          content: item.content || "",
+          // 🔥 닉네임 기준으로 프로필 이미지 붙이기
+          profileImage: memberImageMap.get(item.senderNickname) || null,
         }));
 
         setThreads(normalized);
@@ -85,7 +111,7 @@ export default function MessagesPage() {
       }
     };
 
-    fetchReceivedMessages();
+    fetchData();
   }, [navigate]);
 
   // 글쓰기 버튼 → 쪽지 보내기 페이지로 이동
@@ -106,6 +132,8 @@ export default function MessagesPage() {
         senderName: thread.name,
         content: thread.content,
         dateLabel: thread.dateLabel,
+        // 필요하다면 상세 페이지에서도 프로필 이미지 사용
+        // profileImage: thread.profileImage,
       },
     });
   };
@@ -171,7 +199,7 @@ export default function MessagesPage() {
   return (
     <div className="min-h-screen bg-bg-app flex flex-col">
       {/* 헤더 */}
-      <Header variant="plain" title="쪽지함" />
+      <Header variant="plain" title="쪽지함" bgClassName="bg-yellow-20" />
 
       {/* 본문 */}
       <main className="flex-1 overflow-y-auto pb-32">
@@ -213,6 +241,7 @@ export default function MessagesPage() {
                 name={thread.name}
                 dateLabel={thread.dateLabel}
                 isUnread={thread.isUnread}
+                imageSrc={thread.profileImage}
                 onClick={() => handleClickThread(thread)}
               />
             ))
