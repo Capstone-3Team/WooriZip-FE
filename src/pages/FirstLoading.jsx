@@ -1,16 +1,13 @@
 function FirstLoading() {
   return (
-    <div className="min-h-screen bg-yellow-main flex flex-col items-center justify-center">
+    <div className="min-h-screen bg-bg-app flex flex-col items-center justify-center">
       {/* 로고 이미지 */}
-      <div className="w-40 h-40 bg-gray-20 flex items-center justify-center">
-        <span className="text-sm text-gray-80">로고</span>
-      </div>
-
-      {/* 우리.zip 타이포 로고 */}
-      <div className="mt-8">
-        <span className="font-logo text-3xl font-extrabold leading-none text-text-main">
-          우리.zip
-        </span>
+      <div className="w-40 h-40 flex items-center justify-center">
+        <img
+          src="/logo/logo.svg" // 👉 실제 로고 경로로 바꿔줘
+          alt="우리zip 로고"
+          className="w-32 h-32 object-contain"
+        />
       </div>
     </div>
   );
