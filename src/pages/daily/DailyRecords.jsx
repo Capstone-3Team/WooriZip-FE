@@ -7,50 +7,29 @@ import DailyRecordCard from "@/components/DailyRecordCard";
 import CommentToastModal from "@/components/comments/CommentToastModal";
 import ConfirmModal from "@/components/ConfirmModal";
 
-// TODO: 실제 로그인 유저 이름으로 교체
-const CURRENT_USER_NAME = "나동생";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-const MOCK_RECORDS = [
-  {
-    id: 1,
-    authorName: "나동생",
-    dateLabel: "11월 11일",
-    content: "오늘 날씨가 너무 좋네요~ 공원 산책하기 딱 좋은 날씨였어요.",
-    images: [],
-    comments: [
-      {
-        id: 1,
-        authorName: "귀요미",
-        dateLabel: "11월 12일",
-        content: "하긴 우리zip이 재밌긴 해~",
-        isMine: false,
-      },
-      {
-        id: 2,
-        authorName: "엄마",
-        dateLabel: "11월 12일",
-        content: "귀엽당",
-        isMine: false,
-      },
-    ],
-    commentCount: 2,
-  },
-  {
-    id: 2,
-    authorName: "엄마",
-    dateLabel: "11월 10일",
-    content: "주말에 가족들이랑 같이 밥 먹으면서 이런저런 이야기를 나눴어요.",
-    images: [],
-    comments: [],
-    commentCount: 0,
-  },
-];
+// TODO: 백엔드에서 내 글 여부(isMine) 또는 작성자 id를 내려주면
+//       내 글/댓글에만 수정·삭제 버튼을 노출하도록 개선하기.
+
+/** ISO → 'MM월 DD일' */
+function formatDateLabel(isoString) {
+  if (!isoString) return "";
+  const d = new Date(isoString);
+  if (Number.isNaN(d.getTime())) return "";
+  const month = d.getMonth() + 1;
+  const date = d.getDate();
+  return `${month}월 ${date}일`;
+}
 
 export default function DailyRecords() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [records, setRecords] = useState(MOCK_RECORDS);
+  const [records, setRecords] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+
   const [openRecordMenuId, setOpenRecordMenuId] = useState(null);
 
   // ===== 글 삭제 모달 =====
@@ -70,17 +49,209 @@ export default function DailyRecords() {
     useState(false);
   const [commentIdToDelete, setCommentIdToDelete] = useState(null);
 
+  // ====== 초기 게시글 목록 조회 ======
+  useEffect(() => {
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+
+    const fetchPosts = async () => {
+      try {
+        setIsLoading(true);
+        setLoadError("");
+
+        const res = await fetch(`${API_BASE_URL}/post`, {
+          method: "GET",
+          headers: {
+            accept: "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (res.status === 401 || res.status === 403) {
+          // 토큰 만료 또는 인증 실패 → 로그인 화면으로
+          localStorage.removeItem("accessToken");
+          navigate("/login");
+          return;
+        }
+
+        if (!res.ok) {
+          throw new Error("일상 기록을 불러오지 못했습니다.");
+        }
+
+        const data = await res.json();
+
+        const mapped = (data || []).map((item) => {
+          const prefix = API_BASE_URL?.replace(/\/$/, "") ?? "";
+
+          const toAbsoluteUrl = (url) => {
+            if (!url) return url;
+            if (url.startsWith("http") || url.startsWith("blob:")) return url;
+            const cleaned = url.startsWith("/") ? url : `/${url}`;
+            return `${prefix}${cleaned}`;
+          };
+
+          // 작성자 이름
+          const authorName =
+            item.writerNickname ??
+            item.nickname ??
+            item.familyMemberName ??
+            item.authorName ??
+            item.writerName ??
+            "가족";
+
+          // 작성자 프로필
+          let profileImage = item.writerProfile ?? item.profileImage ?? null;
+          if (profileImage) {
+            profileImage = toAbsoluteUrl(profileImage);
+          }
+
+          // ✅ 이미지 & 영상 구분 (확장자 기준)
+          let images = [];
+          let videoUrl = null;
+
+          // backend가 mediaUrl 또는 mediaUrls[0] 에 대표 미디어를 넣는다고 가정
+          const rawMediaUrls =
+            (Array.isArray(item.mediaUrls) && item.mediaUrls.length > 0
+              ? item.mediaUrls
+              : null) || [];
+
+          // 대표 후보: mediaUrl 우선, 없으면 mediaUrls[0]
+          const mainRawUrl = item.mediaUrl || rawMediaUrls[0] || null;
+
+          const isVideo =
+            mainRawUrl && /\.(mp4|mov|m4v|webm|ogg)$/i.test(mainRawUrl); // 🔥 확장자로 판단
+
+          if (isVideo) {
+            // 영상 글: videoUrl만 세팅
+            videoUrl = toAbsoluteUrl(mainRawUrl);
+          } else {
+            // 이미지 글: mediaUrls / imageUrls / files / imageUrl / thumbnailUrl 다 모아서 이미지 배열로
+            if (rawMediaUrls.length > 0) {
+              images = rawMediaUrls;
+            } else if (Array.isArray(item.imageUrls)) {
+              images = item.imageUrls;
+            } else if (Array.isArray(item.files)) {
+              images = item.files;
+            } else if (item.imageUrl) {
+              images = [item.imageUrl];
+            } else if (item.thumbnailUrl) {
+              images = [item.thumbnailUrl];
+            }
+
+            images = images.map(toAbsoluteUrl);
+          }
+
+          return {
+            id: item.id,
+            authorName,
+            profileImage,
+            dateLabel: formatDateLabel(item.createdAt),
+            content: item.description ?? "",
+            images,
+            videoUrl, // ✅ DailyRecordCard로 내려감
+            commentCount: item.commentCount ?? 0,
+            comments: [],
+          };
+        });
+
+        setRecords(mapped);
+      } catch (error) {
+        console.error(error);
+        setLoadError("일상 기록을 불러오지 못했어요.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchPosts();
+  }, [navigate, location.key]);
+
+  // ====== 특정 게시글의 댓글 목록 조회 ======
+  const fetchCommentsForPost = async (postId) => {
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/post-comment/${postId}`, {
+        method: "GET",
+        headers: {
+          accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (res.status === 401 || res.status === 403) {
+        localStorage.removeItem("accessToken");
+        navigate("/login");
+        return;
+      }
+
+      if (!res.ok) {
+        throw new Error("댓글을 불러오지 못했습니다.");
+      }
+
+      const data = await res.json();
+
+      const prefix = API_BASE_URL?.replace(/\/$/, "") ?? "";
+
+      const mapped = (data || []).map((c) => {
+        // 📌 스웨거 응답 필드에 맞춰 사용
+        const authorName = c.writerNickname ?? "가족";
+
+        let profileImage = c.writerProfile ?? null;
+        if (profileImage) {
+          if (!profileImage.startsWith("http")) {
+            const cleaned = profileImage.startsWith("/")
+              ? profileImage
+              : `/${profileImage}`;
+            profileImage = `${prefix}${cleaned}`;
+          }
+        }
+
+        return {
+          id: c.id,
+          authorName,
+          authorProfileImageUrl: profileImage,
+          dateLabel: formatDateLabel(c.createdAt),
+          content: c.content ?? "",
+        };
+      });
+
+      setRecords((prev) =>
+        prev.map((record) =>
+          record.id === postId
+            ? {
+                ...record,
+                comments: mapped,
+                commentCount: mapped.length,
+              }
+            : record
+        )
+      );
+    } catch (error) {
+      console.error(error);
+      // 댓글만 실패해도 페이지 전체는 유지
+    }
+  };
+
   // ✅ 항상 최신 records에서 대상 기록을 찾아서 씀
   const activeRecordForComments = useMemo(
     () => records.find((r) => r.id === commentTargetId) ?? null,
     [records, commentTargetId]
   );
 
-  // ✅ 댓글 아이콘 클릭 → 토스트 열기
-  const handleOpenComments = (recordId) => {
+  // ✅ 댓글 아이콘 클릭 → 댓글 목록 조회 후 토스트 열기
+  const handleOpenComments = async (recordId) => {
     setCommentTargetId(recordId);
     setCommentInput("");
     setEditingCommentId(null);
+    await fetchCommentsForPost(recordId);
     setIsCommentToastOpen(true);
   };
 
@@ -94,94 +265,130 @@ export default function DailyRecords() {
   };
 
   // ===== 댓글 작성 / 수정 =====
-  const handleSubmitComment = () => {
+  const handleSubmitComment = async () => {
     if (!commentInput.trim() || !activeRecordForComments) return;
 
     const trimmed = commentInput.trim();
     const targetRecordId = activeRecordForComments.id;
 
-    // ✏️ 수정 모드
-    if (editingCommentId !== null) {
-      setRecords((prev) =>
-        prev.map((record) => {
-          if (record.id !== targetRecordId) return record;
-          return {
-            ...record,
-            comments: (record.comments ?? []).map((c) =>
-              c.id === editingCommentId ? { ...c, content: trimmed } : c
-            ),
-          };
-        })
-      );
-
-      setEditingCommentId(null);
-      setCommentInput("");
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      navigate("/login");
       return;
     }
 
-    // ➕ 새 댓글 작성
-    const newComment = {
-      id: Date.now(),
-      authorName: CURRENT_USER_NAME,
-      dateLabel: "오늘", // TODO: 실제 날짜 포맷으로 교체
-      content: trimmed,
-      isMine: true,
-    };
+    try {
+      // ✏️ 수정 모드
+      if (editingCommentId !== null) {
+        const url = `${API_BASE_URL}/post-comment/${editingCommentId}?content=${encodeURIComponent(
+          trimmed
+        )}`;
 
-    setRecords((prev) =>
-      prev.map((record) =>
-        record.id === targetRecordId
-          ? {
-              ...record,
-              comments: [...(record.comments ?? []), newComment],
-              commentCount: (record.commentCount ?? 0) + 1,
-            }
-          : record
-      )
-    );
+        const res = await fetch(url, {
+          method: "PUT",
+          headers: {
+            accept: "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
-    setCommentInput("");
+        if (res.status === 401 || res.status === 403) {
+          alert("본인이 작성한 댓글만 수정할 수 있어요.");
+          return;
+        }
+
+        if (!res.ok) {
+          throw new Error("댓글을 수정하지 못했습니다.");
+        }
+      } else {
+        // ➕ 새 댓글 작성
+        const url = `${API_BASE_URL}/post-comment?postId=${targetRecordId}&content=${encodeURIComponent(
+          trimmed
+        )}`;
+
+        const res = await fetch(url, {
+          method: "POST",
+          headers: {
+            accept: "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (res.status === 401 || res.status === 403) {
+          localStorage.removeItem("accessToken");
+          navigate("/login");
+          return;
+        }
+
+        if (!res.ok) {
+          throw new Error("댓글을 작성하지 못했습니다.");
+        }
+      }
+
+      await fetchCommentsForPost(targetRecordId);
+
+      setEditingCommentId(null);
+      setCommentInput("");
+    } catch (error) {
+      console.error(error);
+      alert("댓글 처리 중 오류가 발생했어요. 잠시 후 다시 시도해주세요.");
+    }
   };
 
-  // 댓글 "수정" 클릭
   const handleStartEditComment = (comment) => {
     setEditingCommentId(comment.id);
     setCommentInput(comment.content);
   };
 
-  // 댓글 "삭제" 클릭 → 모달 오픈
   const handleOpenDeleteCommentModal = (commentId) => {
     setCommentIdToDelete(commentId);
     setIsDeleteCommentModalOpen(true);
   };
 
-  // 댓글 삭제 확정
-  const handleConfirmDeleteComment = () => {
+  const handleConfirmDeleteComment = async () => {
     if (commentIdToDelete == null || !activeRecordForComments) return;
 
     const targetRecordId = activeRecordForComments.id;
 
-    setRecords((prev) =>
-      prev.map((record) => {
-        if (record.id !== targetRecordId) return record;
-        const nextComments = (record.comments ?? []).filter(
-          (c) => c.id !== commentIdToDelete
-        );
-        return {
-          ...record,
-          comments: nextComments,
-          commentCount: Math.max(0, (record.commentCount ?? 0) - 1),
-        };
-      })
-    );
-
-    if (editingCommentId === commentIdToDelete) {
-      setEditingCommentId(null);
-      setCommentInput("");
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      navigate("/login");
+      return;
     }
 
-    setCommentIdToDelete(null);
-    setIsDeleteCommentModalOpen(false);
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/post-comment/${commentIdToDelete}`,
+        {
+          method: "DELETE",
+          headers: {
+            accept: "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (res.status === 401 || res.status === 403) {
+        alert("본인이 작성한 댓글만 삭제할 수 있어요.");
+        return;
+      }
+
+      if (!res.ok) {
+        throw new Error("댓글을 삭제하지 못했습니다.");
+      }
+
+      await fetchCommentsForPost(targetRecordId);
+    } catch (error) {
+      console.error(error);
+      alert("댓글 삭제 중 오류가 발생했어요.");
+    } finally {
+      if (editingCommentId === commentIdToDelete) {
+        setEditingCommentId(null);
+        setCommentInput("");
+      }
+      setCommentIdToDelete(null);
+      setIsDeleteCommentModalOpen(false);
+    }
   };
 
   const handleCloseDeleteCommentModal = () => {
@@ -189,32 +396,6 @@ export default function DailyRecords() {
     setCommentIdToDelete(null);
   };
 
-  // newPost를 한 번만 적용하기 위한 플래그
-  const hasHandledNewPostRef = useRef(false);
-
-  useEffect(() => {
-    const { newPost, updatedPost } = location.state ?? {};
-
-    // 새 글 추가
-    if (newPost && !hasHandledNewPostRef.current) {
-      setRecords((prev) => [newPost, ...prev]);
-      hasHandledNewPostRef.current = true;
-      navigate(location.pathname, { replace: true, state: {} });
-      return;
-    }
-
-    // 기존 글 수정
-    if (updatedPost) {
-      setRecords((prev) =>
-        prev.map((record) =>
-          record.id === updatedPost.id ? { ...record, ...updatedPost } : record
-        )
-      );
-      navigate(location.pathname, { replace: true, state: {} });
-    }
-  }, [location, navigate]);
-
-  // 배경 클릭 시 모든 "글 더보기" 메뉴 닫기
   const handleCloseAllMenus = () => {
     setOpenRecordMenuId(null);
   };
@@ -236,8 +417,41 @@ export default function DailyRecords() {
     });
   };
 
-  const handleRecordDelete = (id) => {
-    setRecords((prev) => prev.filter((record) => record.id !== id));
+  const handleRecordDelete = async (id) => {
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/post/${id}`, {
+        method: "DELETE",
+        headers: {
+          accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      console.log("[DELETE /post]", id, res.status);
+
+      if (res.status === 401 || res.status === 403) {
+        const msg = await res.text().catch(() => "");
+        console.error("delete forbidden:", msg);
+        alert("본인이 작성한 일상 기록만 삭제할 수 있어요.");
+        return;
+      }
+
+      if (!res.ok) {
+        const msg = await res.text().catch(() => "");
+        console.error("delete failed:", msg);
+        throw new Error("일상 기록을 삭제하지 못했습니다.");
+      }
+
+      setRecords((prev) => prev.filter((record) => record.id !== id));
+    } catch (error) {
+      console.error(error);
+      alert("기록 삭제 중 오류가 발생했어요.");
+    }
   };
 
   const handleOpenDeleteRecordModal = (id) => {
@@ -246,9 +460,9 @@ export default function DailyRecords() {
     setIsDeleteRecordModalOpen(true);
   };
 
-  const handleConfirmDeleteRecord = () => {
+  const handleConfirmDeleteRecord = async () => {
     if (recordIdToDelete == null) return;
-    handleRecordDelete(recordIdToDelete);
+    await handleRecordDelete(recordIdToDelete);
     setRecordIdToDelete(null);
     setIsDeleteRecordModalOpen(false);
   };
@@ -258,7 +472,6 @@ export default function DailyRecords() {
     setRecordIdToDelete(null);
   };
 
-  // 글쓰기 버튼 → 파일 선택
   const handleWriteButtonClick = (e) => {
     e.stopPropagation();
     if (albumInputRef.current) {
@@ -271,7 +484,6 @@ export default function DailyRecords() {
     if (!files || files.length === 0) return;
 
     const fileArray = Array.from(files);
-    console.log("선택된 파일들:", fileArray);
 
     navigate("/daily/new", {
       state: {
@@ -287,13 +499,21 @@ export default function DailyRecords() {
       className="min-h-screen bg-bg-app flex flex-col"
       onClick={handleCloseAllMenus}
     >
-      <Header variant="plain" title="일상 기록" />
+      <Header variant="plain" title="일상 기록" bgClassName="bg-yellow-20" />
 
       <main className="flex-1 overflow-y-auto pb-32">
-        {records.map((record) => {
-          const isMyRecord = record.authorName === CURRENT_USER_NAME;
-
-          return (
+        {isLoading ? (
+          <p className="px-4 pt-4 text-sm text-gray-60">
+            일상 기록을 불러오는 중이에요…
+          </p>
+        ) : loadError ? (
+          <p className="px-4 pt-4 text-sm text-red-500">{loadError}</p>
+        ) : records.length === 0 ? (
+          <p className="px-4 pt-4 text-sm text-gray-60">
+            아직 등록된 일상 기록이 없어요.
+          </p>
+        ) : (
+          records.map((record) => (
             <div key={record.id} className="relative mb-4">
               <DailyRecordCard
                 id={record.id}
@@ -302,11 +522,14 @@ export default function DailyRecords() {
                 content={record.content}
                 images={record.images}
                 commentCount={record.commentCount}
-                onMoreClick={isMyRecord ? handleOpenRecordMenu : undefined}
+                profileImage={record.profileImage}
+                videoUrl={record.videoUrl}
+                // TODO: isMine 정보를 받게 되면 내 글에만 onMoreClick을 넘기도록 변경
+                onMoreClick={handleOpenRecordMenu}
                 onCommentClick={handleOpenComments}
               />
 
-              {openRecordMenuId === record.id && isMyRecord && (
+              {openRecordMenuId === record.id && (
                 <div
                   className="absolute right-4 top-4 z-30"
                   onClick={(e) => e.stopPropagation()}
@@ -331,11 +554,10 @@ export default function DailyRecords() {
                 </div>
               )}
             </div>
-          );
-        })}
+          ))
+        )}
       </main>
 
-      {/* 플로팅 글쓰기 버튼 */}
       <div
         className="fixed right-6 bottom-24 z-30"
         onClick={(e) => e.stopPropagation()}
@@ -361,7 +583,6 @@ export default function DailyRecords() {
         onChange={handleAlbumChange}
       />
 
-      {/* ✅ 댓글 토스트 모달 */}
       <CommentToastModal
         isOpen={isCommentToastOpen}
         onClose={handleCloseComments}
@@ -373,7 +594,6 @@ export default function DailyRecords() {
         onRequestDeleteComment={handleOpenDeleteCommentModal}
       />
 
-      {/* ===== 일상 기록 삭제 확인 모달 ===== */}
       <ConfirmModal
         isOpen={isDeleteRecordModalOpen}
         onClose={handleCloseDeleteRecordModal}
@@ -388,7 +608,6 @@ export default function DailyRecords() {
         onSecondary={handleCloseDeleteRecordModal}
       />
 
-      {/* ===== 댓글 삭제 확인 모달 ===== */}
       <ConfirmModal
         isOpen={isDeleteCommentModalOpen}
         onClose={handleCloseDeleteCommentModal}
