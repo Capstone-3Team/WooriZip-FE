@@ -60,6 +60,7 @@ export default function AddVideoAnswer() {
     autoDescription,
     title: stateTitle,
     description: stateDescription,
+    isEdit = false,
   } = location.state ?? {};
 
   // 내부 state에는 "순수 base64 데이터"만 들고 있음
@@ -269,17 +270,19 @@ export default function AddVideoAnswer() {
             )}
           </div>
 
-          {/* 썸네일/영상 수정 버튼 */}
-          <div className="mt-4">
-            <Button
-              size="large"
-              variant="default"
-              type="button"
-              onClick={handleEditVideo}
-            >
-              영상 및 썸네일 수정
-            </Button>
-          </div>
+          {/* 썸네일/영상 수정 버튼 (최초 생성 때만 노출) */}
+          {!isEdit && (
+            <div className="mt-4">
+              <Button
+                size="large"
+                variant="default"
+                type="button"
+                onClick={handleEditVideo}
+              >
+                영상 및 썸네일 수정
+              </Button>
+            </div>
+          )}
         </section>
 
         {/* 2. 제목 / 상세내용 입력 섹션 */}
@@ -312,16 +315,18 @@ export default function AddVideoAnswer() {
 
         {/* 3. 하단 버튼 영역 */}
         <div className="space-y-3">
-          {/* 다시 찍기: WeekAnswer로 돌아감 */}
-          <Button
-            size="large"
-            variant="default"
-            type="button"
-            onClick={handleRetake}
-            disabled={isSubmitting}
-          >
-            다시 찍기
-          </Button>
+          {/* 다시 찍기: WeekAnswer로 돌아감 (최초 생성일 때만 노출) */}
+          {!isEdit && (
+            <Button
+              size="large"
+              variant="default"
+              type="button"
+              onClick={handleRetake}
+              disabled={isSubmitting}
+            >
+              다시 찍기
+            </Button>
+          )}
 
           {/* 영상 추가 완료: 메타데이터 저장 후 WeekAnswer로 이동 */}
           <Button
