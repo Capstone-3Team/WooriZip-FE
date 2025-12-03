@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Header from "@/layouts/Header";
 import CommentInputBar from "@/components/comments/CommentInputBar";
@@ -102,6 +102,9 @@ export default function VideoAnswerDetail() {
 
   // 썸네일을 클릭했는지(= 영상 재생 모드인지) 여부
   const [isPlayingVideo, setIsPlayingVideo] = useState(false);
+
+  // 실제 <video> DOM에 접근하기 위한 ref
+  const videoRef = useRef(null);
 
   // 뒤로가기
   const handleBack = () => {
@@ -227,6 +230,15 @@ export default function VideoAnswerDetail() {
     };
 
     fetchAll();
+  }, [answerId]);
+
+  // answerId가 바뀔 때마다 재생 상태/시간 초기화
+  useEffect(() => {
+    setIsPlayingVideo(false);
+    if (videoRef.current) {
+      videoRef.current.pause();
+      videoRef.current.currentTime = 0;
+    }
   }, [answerId]);
 
   // ==============================
@@ -356,6 +368,35 @@ export default function VideoAnswerDetail() {
     } catch (err) {
       console.error(err);
       alert(err.message || "영상 삭제 중 오류가 발생했습니다.");
+    }
+  };
+
+  /**
+   * 썸네일/영상 영역 클릭 시 재생 ↔ 정지 토글
+   *
+   * - 처음 상태: 썸네일 + 중앙 재생 버튼
+   *   → 클릭하면 isPlayingVideo = true 로 바뀌면서 <video> 렌더링 + 자동 재생
+   * - 재생 중 상태: <video>가 보이는 상태
+   *   → 썸네일 영역(비디오 영역) 아무 곳이나 다시 클릭하면
+   *      영상 pause + 시간 0으로 돌리고 썸네일 상태로 복귀
+   */
+  const handleVideoAreaClick = (e) => {
+    // 바깥 div의 onClick(더보기 메뉴 닫기)로 이벤트가 전파되지 않게 막기
+    e.stopPropagation();
+
+    if (!answer?.videoUrl) return;
+
+    if (isPlayingVideo) {
+      // 재생 중인 상태 → 정지 + 처음 상태로
+      if (videoRef.current) {
+        videoRef.current.pause();
+        videoRef.current.currentTime = 0;
+      }
+      setIsPlayingVideo(false);
+    } else {
+      // 아직 재생 안 한 상태 → 재생 모드로 전환
+      // 실제 재생은 <video autoPlay>가 담당
+      setIsPlayingVideo(true);
     }
   };
 
@@ -516,37 +557,60 @@ export default function VideoAnswerDetail() {
 
               {/* 영상 썸네일 / 재생 영역 */}
               <div
-                className="w-full aspect-video bg-gray-20 rounded-2xl flex items-center justify-center overflow-hidden cursor-pointer"
-                onClick={(e) => {
-                  e.stopPropagation(); // 바깥 클릭 이벤트로 안 올라가게
-                  // videoUrl 있을 때만 재생 모드로 전환
-                  if (answer?.videoUrl) {
-                    setIsPlayingVideo(true);
-                  }
-                }}
+                className="w-full aspect-video bg-gray-20 rounded-2xl flex items-center justify-center overflow-hidden relative cursor-pointer"
+                onClick={handleVideoAreaClick}
               >
                 {isPlayingVideo && answer?.videoUrl ? (
-                  // ✅ 썸네일을 클릭한 뒤에는 같은 자리에서 바로 영상 재생
+                  // 재생 중: 같은 자리에서 비디오 재생
                   <video
+                    ref={videoRef}
                     src={answer.videoUrl}
                     className="w-full h-full object-cover"
                     controls
                     autoPlay
-                    // 비디오 위를 또 클릭해도 바깥 onClick 안 타게
+                    // 비디오 위를 클릭해도 상위 div의 onClick이 또 호출되지 않도록 막기
                     onClick={(e) => e.stopPropagation()}
-                  />
-                ) : answer?.thumbnailUrl ? (
-                  // 아직 재생 전: 썸네일 보여줌
-                  <img
-                    src={answer.thumbnailUrl}
-                    alt="영상 썸네일"
-                    className="w-full h-full object-cover"
+                    // 영상이 끝까지 재생되면 다시 썸네일 상태로 복귀
+                    onEnded={() => {
+                      if (videoRef.current) {
+                        videoRef.current.currentTime = 0;
+                      }
+                      setIsPlayingVideo(false);
+                    }}
                   />
                 ) : (
-                  // 썸네일도 없을 때: 가운데 재생 아이콘만 노출
-                  <div className="w-12 h-12 rounded-full bg-white/80 flex items-center justify-center shadow">
-                    <img src="/icons/play.svg" alt="재생" className="w-6 h-6" />
-                  </div>
+                  <>
+                    {/* 아직 재생 전: 썸네일만 보여줌 */}
+                    {answer?.thumbnailUrl ? (
+                      <img
+                        src={answer.thumbnailUrl}
+                        alt="영상 썸네일"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      // 썸네일도 없을 때는 그냥 회색 배경 + 아이콘
+                      <div className="w-full h-full flex items-center justify-center">
+                        <div className="w-12 h-12 rounded-full bg-white/80 flex items-center justify-center shadow">
+                          <img
+                            src="/icons/play.svg"
+                            alt="재생"
+                            className="w-6 h-6"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 썸네일 위에 항상 재생 버튼 오버레이 (클릭은 부모 div가 받음) */}
+                    <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                      <div className="w-12 h-12 rounded-full bg-black/40 flex items-center justify-center">
+                        <img
+                          src="/icons/play.svg"
+                          alt="재생"
+                          className="w-6 h-6"
+                        />
+                      </div>
+                    </div>
+                  </>
                 )}
               </div>
 
