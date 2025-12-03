@@ -5,6 +5,7 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>woorizip-fe</title>
+
     <!-- 🔹 초대 링크용 OG 메타 태그 (임시 카드 디자인) -->
     <meta property="og:type" content="website" />
     <meta property="og:title" content="우리.zip - 가족 초대가 도착했어요" />
@@ -12,13 +13,21 @@
       property="og:description"
       content="링크를 눌러 우리.zip 가족 공간에 함께 들어와 주세요."
     />
+
     <!-- 임시 카드 이미지 (public/images 폴더 기준) -->
     <meta property="og:image" content="/images/invite-card-temp.png" />
+
     <!-- 나중에 실제 배포 도메인이 생기면 여기만 고치면 됨 -->
     <meta property="og:url" content="https://example.com/splash" />
   </head>
+
   <body>
     <div id="root"></div>
+
+    <!-- Kakao JavaScript SDK (먼저 로드) -->
+    <script src="https://developers.kakao.com/sdk/js/kakao.min.js"></script>
+
+    <!-- 우리 앱 엔트리 -->
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

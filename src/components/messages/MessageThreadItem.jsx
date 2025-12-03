@@ -1,21 +1,31 @@
-function MessageThreadItem({ name, dateLabel, onClick, isUnread }) {
+function MessageThreadItem({ name, dateLabel, onClick, isUnread, imageSrc }) {
+  const hasImage = !!imageSrc;
+
   return (
     <div className="mb-1 bg-bg-app">
       <button
         type="button"
         onClick={onClick}
         className={`w-full flex items-center justify-between px-4 py-4 ${
-          isUnread ? "bg-yellow-main" : "bg-yellow-20"
+          isUnread ? "bg-yellow-20" : "bg-bg-app"
         }`}
       >
         <div className="flex items-center gap-3">
           {/* 프로필 아이콘 (플레이스홀더) */}
           <div className="w-12 h-12 rounded-full bg-gray-10 flex items-center justify-center">
-            <img
-              src="/icons/user.svg"
-              alt={`${name} 프로필`}
-              className="w-10 h-10"
-            />
+            {hasImage ? (
+              <img
+                src={imageSrc}
+                alt={`${name} 프로필`}
+                className="w-10 h-10 rounded-full object-cover shrink-0"
+              />
+            ) : (
+              <img
+                src="/icons/user.svg"
+                alt={`${name} 프로필`}
+                className="w-10 h-10"
+              />
+            )}
           </div>
 
           <div className="flex flex-col items-start">

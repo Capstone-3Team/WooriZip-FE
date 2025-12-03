@@ -21,8 +21,12 @@ function SearchInput({
         className="pr-9"
       />
       {/* 이미지 대신 텍스트 아이콘 → 파일 없어도 무조건 보임 */}
-      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-60 text-sm">
-        🔍
+      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-60">
+        <img
+          src="/icons/search.svg" // public/icons/search.svg
+          alt="검색"
+          className="w-5 h-5" // 아이콘 크기 조절
+        />
       </span>
     </div>
   );

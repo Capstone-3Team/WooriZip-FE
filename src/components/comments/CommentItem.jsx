@@ -3,14 +3,28 @@ export default function CommentItem({
   dateLabel,
   content,
   onMoreClick,
+  imageSrc,
 }) {
+  const hasImage = !!imageSrc;
+
   return (
     <div className="flex gap-3">
       {/* 프로필 */}
       <div className="mt-1">
-        <div className="w-10 h-10 rounded-full bg-gray-10 flex items-center justify-center">
-          {/* 실제 이미지 들어가면 <img />로 교체 */}
-          <span className="text-xs text-gray-80">누군가</span>
+        <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-10 flex items-center justify-center">
+          {hasImage ? (
+            <img
+              src={imageSrc}
+              alt={authorName}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <img
+              src="/icons/user.svg"
+              alt={authorName}
+              className="w-full h-full object-cover"
+            />
+          )}
         </div>
       </div>
 

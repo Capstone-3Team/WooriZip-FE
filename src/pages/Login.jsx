@@ -146,7 +146,7 @@ function Login() {
       <div className="flex-1 px-6 pt-10 pb-8 flex flex-col">
         {/* 로고 영역 */}
         <div className="mt-20 mb-15 flex flex-col items-center">
-          <span className="font-logo text-3xl font-extrabold leading-none text-text-main">
+          <span className="font-logo text-3xl font-extrabold leading-none text-accent">
             우리.zip
           </span>
         </div>

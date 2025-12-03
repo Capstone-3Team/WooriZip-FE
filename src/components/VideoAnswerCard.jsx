@@ -6,6 +6,7 @@ function VideoAnswerCard({
   description,
   thumbnailUrl,
   authorName,
+  profileImageUrl, // ✅ WeekAnswer에서 넘겨줄 이미지 URL
   onClick,
 }) {
   const containerDirection = isMine ? "flex-row-reverse" : "flex-row";
@@ -28,12 +29,13 @@ function VideoAnswerCard({
       <FamilyProfile
         variant="vertical"
         name={authorName}
-        imageSrc={"/icons/user.svg"} // TODO: 실제 프로필 이미지로 교체
+        // ✅ 실제 프로필 이미지 사용, 없으면 기존 기본 아이콘
+        imageSrc={profileImageUrl || "/icons/user.svg"}
         className="shrink-0"
       />
 
       {/* 카드 본문 */}
-      <div className="bg-gray-10 rounded-2xl overflow-hidden shadow-sm w-65 max-w-xs">
+      <div className="bg-gray-10 rounded-2xl overflow-hidden shadow-sm w-65 max-w-xs border-2 border-yellow-main">
         {/* 제목 */}
         <div className="px-4 pt-3 pb-2">
           <h3 className="text-sm font-semibold text-text-main wrap-break-word">

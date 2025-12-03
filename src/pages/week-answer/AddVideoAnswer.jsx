@@ -1,58 +1,141 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Header from "@/layouts/Header";
 import Button from "@/components/buttons/Button";
 import TextInput from "@/components/TextInput";
+
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+
+// data URL 이 들어온 경우에도 base64 부분만 뽑아서 저장
+const normalizeThumbnailData = (value) => {
+  if (!value) return "";
+  if (value.startsWith("data:image")) {
+    const commaIndex = value.indexOf(",");
+    return commaIndex !== -1 ? value.slice(commaIndex + 1) : value;
+  }
+  return value;
+};
 
 export default function AddVideoAnswer() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // WeekAnswer → (로딩 + AI 분석) → 여기로 올 때 넘겨줄 값들 가정
-  const { videoFile, thumbnailUrl, autoTitle, autoDescription } =
-    location.state ?? {};
+  const {
+    videoFile,
+    videoAnswerId,
+    questionId,
+    videoUrl,
+    thumbnailUrl: stateThumb,
+    autoTitle,
+    autoDescription,
+    title: stateTitle,
+    description: stateDescription,
+  } = location.state ?? {};
 
-  // 입력값: AI가 뽑은 값으로 기본 세팅, 사용자가 수정 가능
-  const [title, setTitle] = useState(autoTitle ?? "");
-  const [description, setDescription] = useState(autoDescription ?? "");
+  // ✅ 내부 state 는 base64 순수 데이터만 들고 있음
+  const [thumbnailData, setThumbnailData] = useState(
+    normalizeThumbnailData(stateThumb ?? "")
+  );
+  const [title, setTitle] = useState(stateTitle ?? autoTitle ?? "");
+  const [description, setDescription] = useState(
+    stateDescription ?? autoDescription ?? ""
+  );
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // 화면에 보여줄 때만 data URL로 변환
+  const thumbnailPreviewUrl = useMemo(
+    () => (thumbnailData ? `data:image/jpeg;base64,${thumbnailData}` : ""),
+    [thumbnailData]
+  );
+
+  // 썸네일 편집 페이지(EditVideoThumbnail)에서 돌아왔을 때
+  useEffect(() => {
+    if (location.state?.thumbnailUrl) {
+      setThumbnailData(normalizeThumbnailData(location.state.thumbnailUrl));
+    }
+  }, [location.state]);
 
   const handleClose = () => {
     navigate(-1);
   };
 
-  // “영상 및 썸네일 수정” → 다음에 만들 영상 편집 페이지로 이동 (TODO)
+  // “영상 및 썸네일 수정”
   const handleEditVideo = () => {
     navigate("/edit-video", {
       state: {
-        videoFile, // WeekAnswer → 로딩 → AddVideoAnswer에서 넘겨받은 그 파일
-        thumbnailUrl, // 현재 썸네일
+        videoFile,
+        videoUrl,
+        thumbnailUrl: thumbnailPreviewUrl, // 편집 화면은 data URL로 쓰기 편할 것 같아서
+        returnTo: "/answers/new",
+        returnState: {
+          videoFile,
+          videoAnswerId,
+          questionId,
+          videoUrl,
+          autoTitle,
+          autoDescription,
+          title,
+          description,
+          thumbnailUrl: thumbnailPreviewUrl,
+        },
       },
     });
   };
 
-  // “다시 찍기” → 다시 카메라 찍으러 (일단 WeekAnswer로 복귀)
   const handleRetake = () => {
-    navigate(-1);
-    // 또는 특정 주차 페이지로: navigate("/week-answer");
+    navigate("/week-answer", { replace: true });
   };
 
-  // “영상 추가 완료” → 서버에 저장 후 상세 페이지로 이동 (TODO)
-  const handleSubmit = () => {
-    // TODO: 폼 검증 + 업로드 + API 요청
-    console.log("submit video answer", {
-      videoFile,
-      title,
-      description,
-      thumbnailUrl,
-    });
+  const handleSubmit = async () => {
+    if (!videoAnswerId) {
+      alert("영상 정보가 없어 저장할 수 없습니다. 다시 시도해 주세요.");
+      return;
+    }
 
-    // 메인 페이지로 이동
-    navigate("/week-answer"); // 메인 페이지에 내 답변 추가
+    try {
+      setIsSubmitting(true);
+
+      // ✅ 토큰 여러 키에서 읽기
+      const token =
+        localStorage.getItem("accessToken") ||
+        localStorage.getItem("token") ||
+        localStorage.getItem("jwt");
+
+      const headers = {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      };
+
+      // PUT /video-answer/{id} 는 썸네일/제목/요약만 받도록 정리
+      const bodyForPut = {
+        thumbnailUrl: thumbnailData,
+        title,
+        summary: description,
+      };
+
+      const res = await fetch(`${API_BASE_URL}/video-answer/${videoAnswerId}`, {
+        method: "PUT",
+        headers,
+        body: JSON.stringify(bodyForPut),
+      });
+
+      if (!res.ok) {
+        throw new Error("영상 답변을 저장하지 못했습니다.");
+      }
+
+      await res.json();
+      navigate("/week-answer", { replace: true });
+    } catch (err) {
+      console.error(err);
+      alert(err.message || "영상 저장 중 오류가 발생했습니다.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-bg-app flex flex-col">
-      {/* 헤더 */}
+    <div className="min-h-screen bg-bg-app">
       <Header
         variant="solid"
         title="영상 추가"
@@ -60,20 +143,18 @@ export default function AddVideoAnswer() {
         onLeftClick={handleClose}
       />
 
-      {/* 내용 */}
-      <main className="flex-1 px-6 pt-4 pb-10 space-y-8">
-        {/* 1. 영상 썸네일 영역 */}
+      <main className="px-6 pt-4 pb-28 space-y-8">
+        {/* 1. 썸네일 */}
         <section>
           <h1 className="text-xl font-semibold text-text-main">영상 썸네일</h1>
           <p className="mt-2 text-sm text-gray-60">
             AI가 선정한 최적 썸네일이에요
           </p>
 
-          {/* 썸네일 박스 */}
           <div className="mt-4 w-full aspect-video bg-gray-20 flex items-center justify-center overflow-hidden">
-            {thumbnailUrl ? (
+            {thumbnailPreviewUrl ? (
               <img
-                src={thumbnailUrl}
+                src={thumbnailPreviewUrl}
                 alt="영상 썸네일"
                 className="w-full h-full object-cover"
               />
@@ -82,7 +163,6 @@ export default function AddVideoAnswer() {
             )}
           </div>
 
-          {/* 영상 및 썸네일 수정 버튼 */}
           <div className="mt-4">
             <Button
               size="large"
@@ -95,7 +175,7 @@ export default function AddVideoAnswer() {
           </div>
         </section>
 
-        {/* 2. 제목 + 상세 내용 입력 */}
+        {/* 2. 제목 / 상세내용 */}
         <section className="space-y-8">
           <div className="space-y-3">
             <h1 className="text-xl font-semibold text-text-main">제목</h1>
@@ -120,13 +200,14 @@ export default function AddVideoAnswer() {
           </div>
         </section>
 
-        {/* 하단 버튼 2개 (다시 찍기 / 영상 추가 완료) */}
+        {/* 3. 하단 버튼 */}
         <div className="space-y-3">
           <Button
             size="large"
             variant="default"
             type="button"
             onClick={handleRetake}
+            disabled={isSubmitting}
           >
             다시 찍기
           </Button>
@@ -135,8 +216,9 @@ export default function AddVideoAnswer() {
             variant="primary"
             type="button"
             onClick={handleSubmit}
+            disabled={isSubmitting}
           >
-            영상 추가 완료
+            {isSubmitting ? "저장 중..." : "영상 추가 완료"}
           </Button>
         </div>
       </main>

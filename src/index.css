@@ -4,7 +4,23 @@
 
 @font-face {
   font-family: "Ria Sans";
-  src: url("/fonts/RiaSans-ExtraBold.woff2") format("woff2");
+  src: url("/fonts/RiaSans-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Ria Sans";
+  src: url("/fonts/RiaSans-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Ria Sans";
+  src: url("/fonts/RiaSans-ExtraBold.ttf") format("truetype");
   font-weight: 800;
   font-style: normal;
   font-display: swap;

@@ -128,24 +128,25 @@ export default function ProfileSettingsPage() {
     setUploadError("");
 
     try {
-      const res = await fetch(
-        `${API_BASE_URL}/mypage/profile-image?image=${encodeURIComponent(
-          file.name
-        )}`,
-        {
-          method: "PATCH",
-          headers: {
-            accept: "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const formData = new FormData();
+      // ⚠️ key 이름을 백엔드 @RequestPart/@RequestParam 이름이랑 맞춰야 함
+      // 예: @RequestPart("image") MultipartFile image 이런 식이면 "image"
+      formData.append("image", file);
+
+      const res = await fetch(`${API_BASE_URL}/mypage/profile-image`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          // Content-Type 은 넣지 말기! (브라우저가 boundary 포함해서 자동 설정)
+        },
+        body: formData,
+      });
 
       if (!res.ok) {
         throw new Error("프로필 이미지를 변경하지 못했습니다.");
       }
 
-      // 필요하면 여기서 다시 /mypage/profile 재호출해서 서버 값 동기화 가능
+      // 필요하면 여기서 /mypage/profile 다시 호출해서 최신 데이터로 동기화
     } catch (error) {
       console.error(error);
       setUploadError("프로필 이미지를 변경하지 못했어요.");
