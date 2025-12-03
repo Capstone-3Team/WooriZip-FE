@@ -29,9 +29,7 @@ export default function VideoProcessingLoading() {
   const location = useLocation();
 
   // 이전 페이지(예: 촬영 페이지, 업로드 페이지 등)에서 넘겨준 state
-  // - videoUrl  : 이미 업로드된 영상의 URL (또는 서버에서 인식 가능한 경로)
-  // - questionId: 어떤 질문에 대한 답변인지 식별하기 위한 ID
-  const { videoUrl, questionId } = location.state ?? {};
+  const { videoFile, questionId } = location.state ?? {};
 
   // 에러 메시지 상태 (빈 문자열이면 에러 없음)
   const [error, setError] = useState("");
@@ -41,116 +39,107 @@ export default function VideoProcessingLoading() {
   const hasRequestedRef = useRef(false);
 
   useEffect(() => {
-    // 1) 필수 정보 검증: videoUrl 또는 questionId가 없으면 분석 자체가 불가능
-    if (!videoUrl || !questionId) {
+    // 1) 최소 정보 체크 (없으면 week-answer로 되돌리기)
+    if (!videoFile || !questionId) {
       setError("영상 또는 질문 정보가 없어 분석을 진행할 수 없습니다.");
-
-      // 잠시 에러 메시지를 보여준 뒤, WeekAnswer로 돌려보낸다.
       const t = setTimeout(() => {
         navigate("/week-answer", { replace: true });
       }, 1500);
-
-      // cleanup: 타이머 제거
       return () => clearTimeout(t);
     }
 
-    // 2) StrictMode로 인해 useEffect가 두 번 실행되는 것을 방지
-    if (hasRequestedRef.current) {
-      return;
-    }
+    // 중복 호출 방지
+    if (hasRequestedRef.current) return;
     hasRequestedRef.current = true;
 
-    /**
-     * 업로드 + 분석 요청을 처리하는 비동기 함수
-     *
-     * - API 스펙:
-     *   POST /video-answer?questionId={id}
-     *   Content-Type: application/json
-     *   Body: { "video": "<영상 URL 문자열>" }
-     *
-     * - 응답 예시:
-     * {
-     *   "id": 0,
-     *   "questionId": 0,
-     *   "familyMemberId": 0,
-     *   "familyId": 0,
-     *   "videoUrl": "string",
-     *   "thumbnailUrl": "string",
-     *   "title": "string",
-     *   "summary": "string",
-     *   "shortsUrl": "string",
-     *   "shortsStatus": "string",
-     *   "createdAt": "2025-12-03T15:58:43.729Z"
-     * }
-     */
     const uploadAndAnalyze = async () => {
+      // 로컬에서라도 써먹을 수 있는 blob URL (백엔드 실패 시용)
+      const localVideoUrl = URL.createObjectURL(videoFile);
+
       try {
         setError("");
 
-        // 로컬스토리지에서 JWT 토큰 가져오기
         const token =
           localStorage.getItem("accessToken") ||
           localStorage.getItem("token") ||
           localStorage.getItem("jwt");
 
-        // JSON 요청 헤더 구성
-        const headers = {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        };
+        // 2) FormData로 파일 + questionId 전송
+        const formData = new FormData();
+        const fileName =
+          (videoFile &&
+            typeof videoFile === "object" &&
+            "name" in videoFile &&
+            videoFile.name) ||
+          "recorded-video.webm";
 
-        // questionId는 query param, body에는 video만 담기
-        const url = `${API_BASE_URL}/video-answer?questionId=${encodeURIComponent(
-          String(questionId)
-        )}`;
+        formData.append("video", videoFile, fileName);
+        formData.append("questionId", String(questionId));
 
-        // { "video": "<영상 URL>" } 형태로 직렬화
-        const body = JSON.stringify({
-          video: videoUrl,
-        });
-
-        const res = await fetch(url, {
+        const res = await fetch(`${API_BASE_URL}/video-answer`, {
           method: "POST",
-          headers,
-          body,
+          headers: {
+            // ❗ Content-Type은 FormData가 알아서 설정하게 둔다
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: formData,
         });
 
-        if (!res.ok) {
-          throw new Error(`영상 분석에 실패했습니다. (status: ${res.status})`);
+        let data = null;
+
+        if (res.ok) {
+          // AI 요약/썸네일까지 성공한 경우
+          data = await res.json();
+        } else {
+          // AI 쪽 4xx/5xx (썸네일 실패 등)
+          const text = await res.text().catch(() => "");
+          console.error("[/video-answer] 실패:", res.status, text);
+          setError(`영상 분석에 실패했습니다. (status: ${res.status})`);
         }
 
-        const data = await res.json();
-
-        // 🔁 다음 단계: AddVideoAnswer(영상 추가/수정 페이지)로 이동
-        // - 이때부터는 videoUrl / thumbnailUrl / title / summary 같은
-        //   "URL + 메타데이터"만 들고 다닌다.
+        // 3) 성공이든 실패든 AddVideoAnswer로 이동
         navigate("/answers/new", {
           replace: true,
           state: {
-            // 영상 답변 ID
-            videoAnswerId: data.id,
-            // 어떤 질문에 대한 답변인지 (백엔드 값 우선, 없으면 기존 questionId 사용)
-            questionId: data.questionId ?? questionId,
-            // 분석 결과(또는 백엔드가 저장 후 반환한 값들)
-            videoUrl: data.videoUrl,
-            thumbnailUrl: data.thumbnailUrl,
-            autoTitle: data.title,
-            autoDescription: data.summary,
+            // 성공 시 백엔드에서 받은 id, 실패 시 null
+            videoAnswerId: data?.id ?? null,
+            // 백엔드가 questionId 내려주면 그걸, 아니면 기존 값
+            questionId: data?.questionId ?? questionId,
+            // 성공 시 백엔드 videoUrl, 실패 시 로컬 blob URL
+            videoUrl: data?.videoUrl ?? localVideoUrl,
+            // 성공 시 자동 썸네일/제목/요약, 실패 시 빈 값
+            thumbnailUrl: data?.thumbnailUrl ?? "",
+            title: data?.title ?? "",
+            description: data?.summary ?? "",
+            isEdit: false,
           },
         });
       } catch (err) {
         console.error(err);
-        setError(err.message || "영상 분석 중 오류가 발생했습니다.");
+        setError(
+          err instanceof Error
+            ? err.message
+            : "영상 분석 중 오류가 발생했습니다."
+        );
 
-        // 2초 정도 보여준 뒤 WeekAnswer로 이동
-        setTimeout(() => {
-          navigate("/week-answer", { replace: true });
-        }, 2000);
+        // 4) 네트워크 오류 등 진짜 예외여도, 최소한 영상 편집 화면으로는 보내기
+        navigate("/answers/new", {
+          replace: true,
+          state: {
+            videoAnswerId: null,
+            questionId,
+            videoUrl: localVideoUrl,
+            thumbnailUrl: "",
+            title: "",
+            description: "",
+            isEdit: false,
+          },
+        });
       }
     };
 
     uploadAndAnalyze();
-  }, [videoUrl, questionId, navigate]);
+  }, [videoFile, questionId, navigate]);
 
   return (
     <div className="min-h-screen bg-bg-app flex flex-col items-center justify-center px-6">
