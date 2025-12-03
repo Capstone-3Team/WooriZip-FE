@@ -100,6 +100,9 @@ export default function VideoAnswerDetail() {
   // - answer.owner(또는 BE owner flag)를 기반으로 계산됨
   const isMyAnswer = !!answer?.isMine;
 
+  // 썸네일을 클릭했는지(= 영상 재생 모드인지) 여부
+  const [isPlayingVideo, setIsPlayingVideo] = useState(false);
+
   // 뒤로가기
   const handleBack = () => {
     navigate(-1);
@@ -142,6 +145,11 @@ export default function VideoAnswerDetail() {
       console.error(err);
     }
   };
+
+  // 다른 영상 상세로 이동할 때마다 재생 상태 초기화
+  useEffect(() => {
+    setIsPlayingVideo(false);
+  }, [answerId]);
 
   // ==============================
   // 1) 영상 상세 + 댓글 + 현재 주차 질문 동시 조회
@@ -506,22 +514,39 @@ export default function VideoAnswerDetail() {
                 )}
               </div>
 
-              {/* 영상 썸네일 영역 */}
-              <div className="w-full aspect-video bg-gray-20 rounded-2xl flex items-center justify-center overflow-hidden">
-                {answer?.thumbnailUrl ? (
+              {/* 영상 썸네일 / 재생 영역 */}
+              <div
+                className="w-full aspect-video bg-gray-20 rounded-2xl flex items-center justify-center overflow-hidden cursor-pointer"
+                onClick={(e) => {
+                  e.stopPropagation(); // 바깥 클릭 이벤트로 안 올라가게
+                  // videoUrl 있을 때만 재생 모드로 전환
+                  if (answer?.videoUrl) {
+                    setIsPlayingVideo(true);
+                  }
+                }}
+              >
+                {isPlayingVideo && answer?.videoUrl ? (
+                  // ✅ 썸네일을 클릭한 뒤에는 같은 자리에서 바로 영상 재생
+                  <video
+                    src={answer.videoUrl}
+                    className="w-full h-full object-cover"
+                    controls
+                    autoPlay
+                    // 비디오 위를 또 클릭해도 바깥 onClick 안 타게
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                ) : answer?.thumbnailUrl ? (
+                  // 아직 재생 전: 썸네일 보여줌
                   <img
                     src={answer.thumbnailUrl}
                     alt="영상 썸네일"
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  // 썸네일이 없을 때는 가운데 재생 버튼 아이콘만 노출
-                  <button
-                    type="button"
-                    className="w-12 h-12 rounded-full bg-white/80 flex items-center justify-center shadow"
-                  >
+                  // 썸네일도 없을 때: 가운데 재생 아이콘만 노출
+                  <div className="w-12 h-12 rounded-full bg-white/80 flex items-center justify-center shadow">
                     <img src="/icons/play.svg" alt="재생" className="w-6 h-6" />
-                  </button>
+                  </div>
                 )}
               </div>
 
