@@ -18,6 +18,7 @@ export default function EditVideoThumbnail() {
   // AddVideoAnswer / NewDailyPost에서 넘겨준 데이터
   const {
     videoFile,
+    videoUrl: INITIAL_VIDEO_URL,
     thumbnailUrl: initialThumb,
     returnTo,
     returnState,
@@ -25,7 +26,7 @@ export default function EditVideoThumbnail() {
 
   const videoRef = useRef(null);
 
-  const [videoUrl, setVideoUrl] = useState(null); // public/videos/sample.mp4 넣어두기
+  const [videoUrl, setVideoUrl] = useState(INITIAL_VIDEO_URL || null); // ✅ 전달받은 videoUrl로 초기화하고, 없으면 null
   const [thumbnail, setThumbnail] = useState(initialThumb || null);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
@@ -102,8 +103,16 @@ export default function EditVideoThumbnail() {
   const handleSubmit = () => {
     const video = videoRef.current;
 
+    // ✅ 기존 영상 수정 플로우(파일 없음)는 캔버스 캡처 스킵
+    if (!videoFile) {
+      // 썸네일을 건드리지 않고 그대로 되돌아가기
+      goBack({ thumbnailUrl: thumbnail });
+      return;
+    }
+
     let dataUrl = thumbnail;
 
+    // file 기반(최초 업로드 플로우)에서는 기존 로직 그대로 사용
     if (video) {
       const width = video.videoWidth || 640;
       const height = video.videoHeight || 360;
