@@ -22,6 +22,7 @@ function TermsConsent() {
     thirdParty: false,
   });
 
+  // 동의하기 버튼 활성화 위해 필수 체크 확인
   const allRequiredChecked = Object.values(checked).every(Boolean);
 
   const handleToggleAll = () => {
@@ -64,6 +65,7 @@ function TermsConsent() {
     }
   };
 
+  // 동의하기 버튼 상태
   const agreeButtonVariant = allRequiredChecked ? "primary" : "notFocus";
 
   const renderCheckIcon = (active) => (
