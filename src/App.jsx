@@ -7,6 +7,7 @@ import Splash from "@/pages/Splash";
 import Login from "@/pages/Login";
 import SendEmail from "@/pages/SendEmail";
 import ResetPassword from "@/pages/ResetPassword";
+import KakaoCallbackPage from "@/pages/KakaoCallbackPage";
 
 // 회원가입 플로우 관련
 import TermsConsent from "@/pages/signup/TermsConsent";
@@ -112,6 +113,9 @@ function App() {
       <Route path="/send-email" element={<SendEmail />} />
       <Route path="/reset-password" element={<ResetPassword />} />
 
+      {/* 카카오 로그인 콜백 */}
+      <Route path="/auth/kakao/callback" element={<KakaoCallbackPage />} />
+
       {/* 회원가입 플로우 */}
       <Route path="/terms-consent" element={<TermsConsent />} />
       <Route path="/kakao-email-confirm" element={<KakaoEmailConfirm />} />
@@ -128,6 +132,7 @@ function App() {
       {/* 메인 페이지(주차별 답변 목록) */}
       <Route path="/week-answer" element={<WeekAnswer />} />
       <Route path="/weekly-records" element={<WeeklyRecords />} />
+      <Route path="/video-capture" element={<VideoCapturePage />} />
       <Route path="/answers/:answerId" element={<VideoAnswerDetail />} />
       <Route path="/answers/new/loading" element={<VideoProcessingLoading />} />
       <Route path="/answers/new" element={<AddVideoAnswer />} />
