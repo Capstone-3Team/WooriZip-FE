@@ -33,6 +33,6 @@ src/
 
 - Build Tool: Vite
 
-- Frontend: React, TypeScript
+- Frontend: React, JavaScript
 
 - Styling: Tailwind CSS v4 (configless)
