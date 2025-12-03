@@ -77,7 +77,7 @@ function WeekAnswer() {
   // 현재 주차에 대한 영상 답변 리스트
   const [answers, setAnswers] = useState([]);
 
-  // 가족 프로필 정보 (/mypage/family-profile)
+  // 가족 프로필은 "가족 멤버 수 / 초대코드" 정도만 필요하면 그대로 둠
   const [familyProfile, setFamilyProfile] = useState(null);
 
   // 공통 로딩/에러 상태
@@ -118,18 +118,15 @@ function WeekAnswer() {
   // 3-2. TTS 재생 핸들러
   // ==============================
   const handlePlayQuestionTTS = async () => {
-    // 질문 정보가 아직 없거나, 이미 TTS 로딩 중이면 중복 요청 방지
+    // 질문 ID 없거나 이미 로딩 중이면 중복 요청 방지
     if (!weekInfo?.id || isTtsLoading) return;
 
     try {
       setIsTtsLoading(true);
 
-      // 헤더에 Authorization 토큰 넣기
       const token = localStorage.getItem(TOKEN_STORAGE_KEY);
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-      // TTS API 호출
-      // - GET /question/tts/{questionId}
       const res = await fetch(`${API_BASE_URL}/question/tts/${weekInfo.id}`, {
         method: "GET",
         headers,
@@ -139,72 +136,47 @@ function WeekAnswer() {
         throw new Error("TTS 요청에 실패했습니다.");
       }
 
-      const contentType = res.headers.get("content-type") || "";
-      let audioBlob;
+      // ✅ 항상 JSON: { format: "mp3", audio: "<base64>" }
+      const data = await res.json();
+      console.log("TTS 응답:", data);
 
-      // 응답의 Content-Type으로 응답 형태 구분
-      // 1) JSON으로 audio(base64) + format 내려주는 방식
-      // 2) 바로 audio/mpeg, audio/wav 등의 바이너리로 내려주는 방식
-      if (contentType.includes("application/json")) {
-        // JSON 응답인 경우 ({"audio": {...}, "format": {...}} 같은 형태)
-        const data = await res.json();
-        console.log("TTS 응답:", data);
-
-        let base64Audio = null;
-
-        if (data.audio) {
-          if (typeof data.audio === "string") {
-            // ✅ {"audio": "<base64...>"} 인 경우 -> api는 string 타입으로 오긴 함
-            base64Audio = data.audio;
-          } else {
-            // ✅ {"audio": {data / audioContent / bytes...}} 인 경우
-            base64Audio =
-              data.audio.data ||
-              data.audio.audioContent ||
-              data.audio.bytes ||
-              null;
-          }
-        }
-
-        if (!base64Audio) {
-          throw new Error("TTS 오디오 데이터가 없습니다.");
-        }
-
-        // base64 문자열 → 실제 이진 데이터(Blob)로 변환
-        const byteString = atob(base64Audio);
-        const len = byteString.length;
-        const bytes = new Uint8Array(len);
-        for (let i = 0; i < len; i += 1) {
-          bytes[i] = byteString.charCodeAt(i);
-        }
-        // audio/mpeg 타입의 Blob 생성 (mp3 기준)
-        audioBlob = new Blob([bytes.buffer], { type: "audio/mpeg" });
-      } else if (contentType.startsWith("audio/")) {
-        // 서버가 바로 mp3/wav 바이너리를 내려주는 경우
-        audioBlob = await res.blob();
-      } else {
-        // 혹시 content-type이 이상하게 오더라도 일단 blob으로 처리
-        audioBlob = await res.blob();
+      if (!data.audio) {
+        throw new Error("TTS 오디오 데이터가 없습니다.");
       }
 
-      // Blob → 브라우저가 재생 가능한 URL로 변환
+      const base64Audio = data.audio;
+
+      // format 값에 따라 mime-type 설정 (기본은 mp3로 가정)
+      const mimeType =
+        data.format === "wav"
+          ? "audio/wav"
+          : data.format === "ogg"
+          ? "audio/ogg"
+          : "audio/mpeg"; // 기본 mp3
+
+      // base64 문자열 → 바이너리로 디코딩
+      const byteString = atob(base64Audio);
+      const len = byteString.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i += 1) {
+        bytes[i] = byteString.charCodeAt(i);
+      }
+
+      const audioBlob = new Blob([bytes.buffer], { type: mimeType });
       const url = URL.createObjectURL(audioBlob);
 
-      // ref에 Audio 인스턴스가 없으면 새로 만들기
+      // 기존 오디오 정리
       if (!ttsAudioRef.current) {
         ttsAudioRef.current = new Audio();
       } else {
-        // 기존에 재생 중이던 오디오가 있다면 멈추고 URL 정리
         ttsAudioRef.current.pause();
         if (ttsAudioRef.current.src?.startsWith("blob:")) {
           URL.revokeObjectURL(ttsAudioRef.current.src);
         }
       }
 
-      // 새 URL을 src에 연결
       ttsAudioRef.current.src = url;
 
-      // 재생이 끝났을 때 로딩 상태 해제 + URL 정리
       ttsAudioRef.current.onended = () => {
         setIsTtsLoading(false);
         if (ttsAudioRef.current.src?.startsWith("blob:")) {
@@ -212,7 +184,6 @@ function WeekAnswer() {
         }
       };
 
-      // 실제 재생
       await ttsAudioRef.current.play();
       setIsTtsLoading(false);
     } catch (e) {
@@ -237,8 +208,7 @@ function WeekAnswer() {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         };
 
-        // 1) 현재 주차(또는 가입 기준) 질문 가져오기
-        // - GET /question/current
+        // 1) 현재 주차 질문 조회
         const questionRes = await fetch(`${API_BASE_URL}/question/current`, {
           method: "GET",
           headers,
@@ -250,17 +220,15 @@ function WeekAnswer() {
 
         const questionJson = await questionRes.json();
 
-        // 화면에서 사용할 형태로 매핑
         const mappedWeekInfo = {
           id: questionJson.id,
-          label: createWeekLabel(questionJson), // "2025년 11월 2주차"
-          question: `Q. ${questionJson.title}`, // 질문 제목 앞에 "Q." 붙이기
+          label: createWeekLabel(questionJson),
+          question: `Q. ${questionJson.title}`,
         };
         setWeekInfo(mappedWeekInfo);
 
-        // 2) 영상 답변 목록 + 가족 프로필을 병렬로 요청
-        // - 질문 ID로 해당 주차 답변 리스트 조회
-        // - 마이페이지의 가족 프로필 조회
+        // 2) 영상 답변 목록 + (필요하면) 가족 프로필 병렬 요청
+        //    - 여기서 더 이상 "프로필 이미지 매핑" 같은 복잡한 처리는 하지 않음
         const [answersRes, familyRes] = await Promise.all([
           fetch(`${API_BASE_URL}/video-answer?questionId=${questionJson.id}`, {
             method: "GET",
@@ -278,88 +246,25 @@ function WeekAnswer() {
 
         const answersJson = await answersRes.json();
 
-        let familyJson = null;
+        // 가족 프로필은 "초대 코드 / 멤버 수" 체크용으로만 사용
         if (familyRes.ok) {
-          familyJson = await familyRes.json();
+          const familyJson = await familyRes.json();
           setFamilyProfile(familyJson);
         }
 
-        // ===========================================
-        // 2-1) 가족장(leader) + members 프로필 이미지 맵 구성
-        // ===========================================
-        // - key: "id:123", "name:닉네임" 형태
-        // - value: profileImageUrl
-        const memberImageMap = new Map();
-
-        // (1) 가족장(leader) 추가
-        if (familyJson?.leader) {
-          const leader = familyJson.leader;
-
-          // 백에서 어떤 키를 쓰는지 혼재할 수 있어서 세 가지 후보 중 하나 사용
-          const leaderId =
-            leader.familyMemberId ?? leader.memberId ?? leader.id;
-
-          // 프로필 이미지 필드 이름도 profileImageUrl / profileImage 중 하나일 수 있음
-          const leaderImg =
-            leader.profileImageUrl ?? leader.profileImage ?? null;
-
-          if (leaderId != null && leaderImg) {
-            memberImageMap.set(`id:${leaderId}`, leaderImg);
-          }
-          if (leader.nickname && leaderImg) {
-            memberImageMap.set(`name:${leader.nickname}`, leaderImg);
-          }
-        }
-
-        // (2) 나머지 가족 멤버들 추가
-        if (Array.isArray(familyJson?.members)) {
-          familyJson.members.forEach((m) => {
-            const idKey = m.familyMemberId ?? m.memberId ?? m.id;
-            const img = m.profileImageUrl ?? m.profileImage ?? null;
-
-            if (idKey != null && img) {
-              memberImageMap.set(`id:${idKey}`, img);
-            }
-            if (m.nickname && img) {
-              memberImageMap.set(`name:${m.nickname}`, img);
-            }
-          });
-        }
-
-        // ===========================================
-        // 2-2) /video-answer 응답 + 가족 프로필 이미지 매핑
-        // ===========================================
-        const mappedAnswers = (answersJson ?? []).map((item) => {
-          // 1순위: 가족 멤버 id 기준
-          // 2순위: memberId
-          // 3순위: nickname 기준
-          const profileImageUrl =
-            memberImageMap.get(`id:${item.familyMemberId}`) ??
-            memberImageMap.get(`id:${item.memberId}`) ??
-            memberImageMap.get(`name:${item.nickname}`) ??
-            null;
-
-          console.log(
-            "[answer]",
-            item.id,
-            item.nickname,
-            item.familyMemberId,
-            "→ profileImageUrl:",
-            profileImageUrl
-          );
-
-          return {
-            id: item.id,
-            authorId: item.familyMemberId,
-            authorName: item.nickname || "가족", // 별명 없을 때 대비
-            isMine: !!item.owner, // 내가 올린 답변인지 여부(말풍선 방향 등에 사용)
-            dateLabel: formatDateLabel(item.createdAt),
-            title: item.title,
-            description: item.summary,
-            thumbnailUrl: buildThumbnailSrc(item.thumbnailUrl),
-            profileImageUrl, // 카드에서 보여줄 프로필 이미지
-          };
-        });
+        // ✅ /video-answer 응답에서 바로 nickname, profileImageUrl 사용
+        const mappedAnswers = (answersJson ?? []).map((item) => ({
+          id: item.id,
+          authorId: item.familyMemberId,
+          authorName: item.nickname || "가족",
+          isMine: !!item.owner,
+          dateLabel: formatDateLabel(item.createdAt),
+          title: item.title,
+          description: item.summary,
+          thumbnailUrl: buildThumbnailSrc(item.thumbnailUrl),
+          // 🔥 API가 직접 내려주는 프로필 이미지 사용
+          profileImageUrl: item.profileImageUrl ?? null,
+        }));
 
         setAnswers(mappedAnswers);
       } catch (err) {
