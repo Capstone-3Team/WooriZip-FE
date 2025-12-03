@@ -22,37 +22,46 @@ function formatDateLabel(isoString) {
   return `${month}월 ${date}일`;
 }
 
+// ==============================
+// 1. 일상 기록 페이지 컴포넌트
+// ==============================
 export default function DailyRecords() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [records, setRecords] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState("");
+  // ===== 게시글 목록 / 로딩 상태 =====
+  const [records, setRecords] = useState([]); // 화면에 렌더링할 일상 기록 배열
+  const [isLoading, setIsLoading] = useState(true); // 초기 데이터 로딩 여부
+  const [loadError, setLoadError] = useState(""); // 로딩 실패 시 에러 메시지
 
-  const [openRecordMenuId, setOpenRecordMenuId] = useState(null);
+  // ===== 각 일상 기록 카드의 "더보기" 메뉴 상태 =====
+  const [openRecordMenuId, setOpenRecordMenuId] = useState(null); // 현재 더보기 메뉴가 열려 있는 record id
 
   // ===== 글 삭제 모달 =====
-  const [isDeleteRecordModalOpen, setIsDeleteRecordModalOpen] = useState(false);
-  const [recordIdToDelete, setRecordIdToDelete] = useState(null);
+  const [isDeleteRecordModalOpen, setIsDeleteRecordModalOpen] = useState(false); // 글 삭제 모달 열림 여부
+  const [recordIdToDelete, setRecordIdToDelete] = useState(null); // 삭제 대상 글 id
 
+  // ===== 앨범(파일 선택) input 참조 =====
   const albumInputRef = useRef(null);
 
   // ===== 댓글 토스트 상태 =====
-  const [isCommentToastOpen, setIsCommentToastOpen] = useState(false);
-  const [commentTargetId, setCommentTargetId] = useState(null);
-  const [commentInput, setCommentInput] = useState("");
+  const [isCommentToastOpen, setIsCommentToastOpen] = useState(false); // 댓글 토스트 모달 열림 여부
+  const [commentTargetId, setCommentTargetId] = useState(null); // 댓글을 보고 있는 대상 글 id
+  const [commentInput, setCommentInput] = useState(""); // 댓글 입력창 내용
 
-  // 댓글 수정 / 삭제용 상태
-  const [editingCommentId, setEditingCommentId] = useState(null);
+  // ===== 댓글 수정 / 삭제용 상태 =====
+  const [editingCommentId, setEditingCommentId] = useState(null); // 수정 중인 댓글 id
   const [isDeleteCommentModalOpen, setIsDeleteCommentModalOpen] =
-    useState(false);
-  const [commentIdToDelete, setCommentIdToDelete] = useState(null);
+    useState(false); // 댓글 삭제 모달 열림 여부
+  const [commentIdToDelete, setCommentIdToDelete] = useState(null); // 삭제 대상 댓글 id
 
-  // ====== 초기 게시글 목록 조회 ======
+  // ==============================
+  // 2. 초기 게시글 목록 조회
+  // ==============================
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
     if (!token) {
+      // 토큰이 없으면 로그인 페이지로 보냄
       navigate("/login");
       return;
     }
@@ -62,6 +71,7 @@ export default function DailyRecords() {
         setIsLoading(true);
         setLoadError("");
 
+        // 전체 일상 기록 조회
         const res = await fetch(`${API_BASE_URL}/post`, {
           method: "GET",
           headers: {
@@ -84,11 +94,15 @@ export default function DailyRecords() {
         const data = await res.json();
 
         const mapped = (data || []).map((item) => {
+          // 상대 경로를 절대 URL로 변환하기 위한 prefix
           const prefix = API_BASE_URL?.replace(/\/$/, "") ?? "";
 
+          // 상대/절대 경로를 통일하기 위한 헬퍼
           const toAbsoluteUrl = (url) => {
             if (!url) return url;
+            // 이미 http 또는 blob: 으로 시작하면 그대로 사용
             if (url.startsWith("http") || url.startsWith("blob:")) return url;
+            // 그렇지 않으면 백엔드 base URL 기준으로 붙여줌
             const cleaned = url.startsWith("/") ? url : `/${url}`;
             return `${prefix}${cleaned}`;
           };
@@ -151,9 +165,9 @@ export default function DailyRecords() {
             dateLabel: formatDateLabel(item.createdAt),
             content: item.description ?? "",
             images,
-            videoUrl, // ✅ DailyRecordCard로 내려감
+            videoUrl, // DailyRecordCard 쪽에서 이 값이 있으면 영상 카드로 렌더링
             commentCount: item.commentCount ?? 0,
-            comments: [],
+            comments: [], // 댓글 토스트 열릴 때 별도로 채움
           };
         });
 
@@ -166,6 +180,8 @@ export default function DailyRecords() {
       }
     };
 
+    // location.key를 의존성에 넣었기 때문에
+    // 같은 페이지에서 뒤로가기/다시 들어오기 등에도 재조회됨
     fetchPosts();
   }, [navigate, location.key]);
 
@@ -186,6 +202,7 @@ export default function DailyRecords() {
         },
       });
 
+      // 인증 에러 시 로그인으로
       if (res.status === 401 || res.status === 403) {
         localStorage.removeItem("accessToken");
         navigate("/login");
@@ -201,7 +218,7 @@ export default function DailyRecords() {
       const prefix = API_BASE_URL?.replace(/\/$/, "") ?? "";
 
       const mapped = (data || []).map((c) => {
-        // 📌 스웨거 응답 필드에 맞춰 사용
+        // 스웨거 응답 필드에 맞춰 사용
         const authorName = c.writerNickname ?? "가족";
 
         let profileImage = c.writerProfile ?? null;
@@ -223,6 +240,7 @@ export default function DailyRecords() {
         };
       });
 
+      // records 중 해당 게시글의 comments / commentCount만 갱신
       setRecords((prev) =>
         prev.map((record) =>
           record.id === postId
@@ -240,18 +258,22 @@ export default function DailyRecords() {
     }
   };
 
-  // ✅ 항상 최신 records에서 대상 기록을 찾아서 씀
+  // ==============================
+  // 4. 현재 댓글을 열어둔 게시글 정보 메모이제이션
+  // ==============================
+
+  // commentTargetId와 records를 기준으로 항상 최신 record를 참조
   const activeRecordForComments = useMemo(
     () => records.find((r) => r.id === commentTargetId) ?? null,
     [records, commentTargetId]
   );
 
-  // ✅ 댓글 아이콘 클릭 → 댓글 목록 조회 후 토스트 열기
+  // 댓글 아이콘 클릭 → 댓글 목록 조회 후 토스트 열기
   const handleOpenComments = async (recordId) => {
     setCommentTargetId(recordId);
     setCommentInput("");
     setEditingCommentId(null);
-    await fetchCommentsForPost(recordId);
+    await fetchCommentsForPost(recordId); // 댓글 목록 최신화
     setIsCommentToastOpen(true);
   };
 
@@ -264,7 +286,10 @@ export default function DailyRecords() {
     setIsDeleteCommentModalOpen(false);
   };
 
-  // ===== 댓글 작성 / 수정 =====
+  // ==============================
+  // 5. 댓글 작성 / 수정 / 삭제
+  // ==============================
+
   const handleSubmitComment = async () => {
     if (!commentInput.trim() || !activeRecordForComments) return;
 
@@ -278,7 +303,7 @@ export default function DailyRecords() {
     }
 
     try {
-      // ✏️ 수정 모드
+      // 수정 모드
       if (editingCommentId !== null) {
         const url = `${API_BASE_URL}/post-comment/${editingCommentId}?content=${encodeURIComponent(
           trimmed
@@ -301,7 +326,7 @@ export default function DailyRecords() {
           throw new Error("댓글을 수정하지 못했습니다.");
         }
       } else {
-        // ➕ 새 댓글 작성
+        // 새 댓글 작성
         const url = `${API_BASE_URL}/post-comment?postId=${targetRecordId}&content=${encodeURIComponent(
           trimmed
         )}`;
@@ -315,6 +340,7 @@ export default function DailyRecords() {
         });
 
         if (res.status === 401 || res.status === 403) {
+          // 댓글 작성도 인증 필요 → 토큰 제거 후 로그인으로
           localStorage.removeItem("accessToken");
           navigate("/login");
           return;
@@ -325,6 +351,7 @@ export default function DailyRecords() {
         }
       }
 
+      // 성공 후 댓글 목록 다시 조회
       await fetchCommentsForPost(targetRecordId);
 
       setEditingCommentId(null);
@@ -335,16 +362,19 @@ export default function DailyRecords() {
     }
   };
 
+  // 댓글 수정 시작 → 토스트 입력창에 기존 내용 채워넣기
   const handleStartEditComment = (comment) => {
     setEditingCommentId(comment.id);
     setCommentInput(comment.content);
   };
 
+  // 댓글 삭제 모달 열기
   const handleOpenDeleteCommentModal = (commentId) => {
     setCommentIdToDelete(commentId);
     setIsDeleteCommentModalOpen(true);
   };
 
+  // 댓글 삭제 확정
   const handleConfirmDeleteComment = async () => {
     if (commentIdToDelete == null || !activeRecordForComments) return;
 
@@ -377,11 +407,13 @@ export default function DailyRecords() {
         throw new Error("댓글을 삭제하지 못했습니다.");
       }
 
+      // 삭제 후 댓글 목록 재조회
       await fetchCommentsForPost(targetRecordId);
     } catch (error) {
       console.error(error);
       alert("댓글 삭제 중 오류가 발생했어요.");
     } finally {
+      // 수정 중이던 댓글을 삭제한 경우 수정 상태 초기화
       if (editingCommentId === commentIdToDelete) {
         setEditingCommentId(null);
         setCommentInput("");
@@ -396,14 +428,20 @@ export default function DailyRecords() {
     setCommentIdToDelete(null);
   };
 
+  // ==============================
+  // 6. 게시글 더보기 메뉴 & 글 삭제
+  // ==============================
+
   const handleCloseAllMenus = () => {
     setOpenRecordMenuId(null);
   };
 
+  // 특정 게시글의 더보기 메뉴 열기/닫기
   const handleOpenRecordMenu = (id) => {
     setOpenRecordMenuId((prev) => (prev === id ? null : id));
   };
 
+  // 글 수정 버튼 클릭 → /daily/new 로 이동 (state로 editPost 전달)
   const handleRecordEdit = (id) => {
     const target = records.find((record) => record.id === id);
     if (!target) return;
@@ -417,6 +455,7 @@ export default function DailyRecords() {
     });
   };
 
+  // 실제 DELETE 요청
   const handleRecordDelete = async (id) => {
     const token = localStorage.getItem("accessToken");
     if (!token) {
@@ -447,6 +486,7 @@ export default function DailyRecords() {
         throw new Error("일상 기록을 삭제하지 못했습니다.");
       }
 
+      // 성공하면 해당 record를 목록에서 제거
       setRecords((prev) => prev.filter((record) => record.id !== id));
     } catch (error) {
       console.error(error);
@@ -454,15 +494,17 @@ export default function DailyRecords() {
     }
   };
 
+  // 글 삭제 모달 열기
   const handleOpenDeleteRecordModal = (id) => {
     setRecordIdToDelete(id);
     setOpenRecordMenuId(null);
     setIsDeleteRecordModalOpen(true);
   };
 
+  // 글 삭제 확정
   const handleConfirmDeleteRecord = async () => {
     if (recordIdToDelete == null) return;
-    await handleRecordDelete(recordIdToDelete);
+    await handleRecordDelete(recordIdToDelete); // 재조회
     setRecordIdToDelete(null);
     setIsDeleteRecordModalOpen(false);
   };
@@ -472,6 +514,11 @@ export default function DailyRecords() {
     setRecordIdToDelete(null);
   };
 
+  // ==============================
+  // 7. 글쓰기(앨범에서 선택) 관련
+  // ==============================
+
+  // "글쓰기" 버튼 클릭 → 숨겨진 file input 클릭 트리거
   const handleWriteButtonClick = (e) => {
     e.stopPropagation();
     if (albumInputRef.current) {
@@ -479,20 +526,28 @@ export default function DailyRecords() {
     }
   };
 
+  // 앨범에서 파일 선택 시 호출
   const handleAlbumChange = (e) => {
     const { files } = e.target;
     if (!files || files.length === 0) return;
 
+    // FileList → 실제 배열로 변환
     const fileArray = Array.from(files);
 
+    // /daily/new 페이지로 이동하면서 선택한 파일들을 state로 넘김
     navigate("/daily/new", {
       state: {
         files: fileArray,
       },
     });
 
+    // 같은 파일을 다시 선택할 수 있도록 value 초기화
     e.target.value = "";
   };
+
+  // ==============================
+  // 8. 렌더링
+  // ==============================
 
   return (
     <div
@@ -501,6 +556,7 @@ export default function DailyRecords() {
     >
       <Header variant="plain" title="일상 기록" bgClassName="bg-yellow-20" />
 
+      {/* 메인 영역: 스크롤 가능 */}
       <main className="flex-1 overflow-y-auto pb-32">
         {isLoading ? (
           <p className="px-4 pt-4 text-sm text-gray-60">
@@ -529,6 +585,7 @@ export default function DailyRecords() {
                 onCommentClick={handleOpenComments}
               />
 
+              {/* 카드별 더보기 메뉴 (수정/삭제) */}
               {openRecordMenuId === record.id && (
                 <div
                   className="absolute right-4 top-4 z-30"
@@ -558,6 +615,7 @@ export default function DailyRecords() {
         )}
       </main>
 
+      {/* 우측 하단 "글쓰기" 버튼 */}
       <div
         className="fixed right-6 bottom-24 z-30"
         onClick={(e) => e.stopPropagation()}
@@ -574,6 +632,7 @@ export default function DailyRecords() {
 
       <BottomNav />
 
+      {/* 실제로는 숨겨져 있는 앨범(file) 입력 */}
       <input
         ref={albumInputRef}
         type="file"
@@ -583,6 +642,7 @@ export default function DailyRecords() {
         onChange={handleAlbumChange}
       />
 
+      {/* 댓글 토스트 모달 (선택된 record 기준) */}
       <CommentToastModal
         isOpen={isCommentToastOpen}
         onClose={handleCloseComments}
@@ -594,6 +654,7 @@ export default function DailyRecords() {
         onRequestDeleteComment={handleOpenDeleteCommentModal}
       />
 
+      {/* 글 삭제 확인 모달 */}
       <ConfirmModal
         isOpen={isDeleteRecordModalOpen}
         onClose={handleCloseDeleteRecordModal}
@@ -608,6 +669,7 @@ export default function DailyRecords() {
         onSecondary={handleCloseDeleteRecordModal}
       />
 
+      {/* 댓글 삭제 확인 모달 */}
       <ConfirmModal
         isOpen={isDeleteCommentModalOpen}
         onClose={handleCloseDeleteCommentModal}
