@@ -9,7 +9,7 @@ function Login() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // /splash에서 넘어온 초대코드 (없으면 undefined)
+  // /splash에서 넘어온 초대코드 (state로 전달된 값)
   const { inviteCode } = location.state || {};
 
   const [idOrEmail, setIdOrEmail] = useState(""); // 아이디/이메일 입력 값
@@ -25,14 +25,15 @@ function Login() {
 
     let hasError = false;
 
+    // 이메일 입력 검증 (공백만 입력한 경우 방지)
     if (!idOrEmail.trim()) {
-      // 공백을 제거한 문자열이 빈 문자열이면 입력안한 것으로 판단
       setIdError("이메일을 입력해주세요.");
       hasError = true;
     } else {
       setIdError("");
     }
 
+    // 비밀번호 입력 검증
     if (!password.trim()) {
       setPasswordError("비밀번호를 입력해주세요.");
       hasError = true;
@@ -40,6 +41,7 @@ function Login() {
       setPasswordError("");
     }
 
+    // 둘 중 하나라도 비어 있으면 API 호출하지 않고 종료
     if (hasError) return;
 
     // 여기부터 실제 로그인 API 호출
@@ -61,25 +63,26 @@ function Login() {
 
       const contentType = response.headers.get("content-type") || "";
 
-      // 응답이 JSON인지 확인
+      // 응답이 JSON 형식인지 확인 (text 응답 방어)
       if (!contentType.includes("application/json")) {
         const text = await response.text();
         throw new Error(text || "서버 응답 형식이 올바르지 않습니다.");
       }
 
-      const data = await response.json(); // { token, message }
+      // 정상적인 JSON 응답일 때 파싱
+      // 기대 형태: { token, message }
+      const data = await response.json();
 
+      // HTTP 상태 코드가 200대가 아닌 경우
       if (!response.ok) {
         throw new Error(data.message || "로그인에 실패했습니다.");
       }
 
-      // JWT 토큰 + 로그인 상태 로컬에 저장
+      // JWT 토큰 + 로그인 상태 로컬에 저장 (나중에 Authorization 헤더에 사용)
       if (data.token) {
         localStorage.setItem("accessToken", data.token);
       }
-      localStorage.setItem("isLoggedIn", "true");
-
-      // TODO: 나중에 필요하면 message도 사용 가능
+      localStorage.setItem("isLoggedIn", "true"); // 간단한 로그인 상태 플래그
       console.log("[DEBUG] /auth/login success:", data);
 
       navigate("/week-answer");
@@ -94,7 +97,7 @@ function Login() {
   // 실제 카카오 로그인 + 서버 API 호출 대신, 지금은 mock 함수로 플로우만 잡아둔 상태
   const mockKakaoLogin = async () => {
     // TODO: 나중에 실제 카카오 SDK + 백엔드 API 연동으로 교체
-    // status: "EXISTING" | "NEEDS_SIGNUP"
+    // status: "EXISTING" | "NEEDS_SIGNUP" 두 가지 케이스만 가정
     return {
       status: "NEEDS_SIGNUP",
       kakaoUser: {
@@ -137,6 +140,7 @@ function Login() {
     });
   };
 
+  // 비밀번호 찾기 페이지로 이동
   const goToResetPassword = () => {
     navigate("/send-email");
   };
@@ -160,6 +164,7 @@ function Login() {
             value={idOrEmail}
             onChange={(e) => {
               setIdOrEmail(e.target.value);
+              // 입력이 바뀌면 해당 필드 에러와 공통 에러는 초기화
               setIdError("");
               setFormError("");
             }}
@@ -178,7 +183,7 @@ function Login() {
                 setPasswordError("");
                 setFormError("");
               }}
-              showPasswordToggle
+              showPasswordToggle // TextInput에 넘길 값
               errorMessage={passwordError}
             />
             <div className="flex justify-end">
