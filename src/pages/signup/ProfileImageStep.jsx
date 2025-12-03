@@ -23,11 +23,9 @@ function ProfileImageStep() {
   // -----------------------------
   // 1) useState: 화면에 보여줄 이미지 URL
   // -----------------------------
-  // 사용자가 파일을 선택하면, 그 파일로부터 만든 object URL을 저장해서
-  // <img src="..."> 에 바로 넣어주는 용도.
-  // (백엔드로 보낼 실제 File 객체는 나중에 추가할 수 있고,
-  // 지금은 프론트 미리보기만 담당)
-  const [profileImageUrl, setProfileImageUrl] = useState(null);
+
+  const [profileImageFile, setProfileImageFile] = useState(null); // 실제 File 객체
+  const [profileImageUrl, setProfileImageUrl] = useState(null); // 미리보기용 URL
 
   // -----------------------------
   // 2) useRef: 숨겨진 <input type="file"> DOM에 직접 접근하기
@@ -77,6 +75,9 @@ function ProfileImageStep() {
       URL.revokeObjectURL(profileImageUrl);
     }
 
+    // 실제 파일 저장
+    setProfileImageFile(file);
+
     // 새로 선택한 파일 기준으로 미리보기 URL 생성 후 상태에 저장
     const imageUrl = URL.createObjectURL(file);
     setProfileImageUrl(imageUrl);
@@ -90,7 +91,8 @@ function ProfileImageStep() {
         kakaoId,
         agreedTerms,
         nickname,
-        profileImageUrl, // 선택 안 했으면 null
+        profileImageUrl, // 미리보기용
+        profileImageFile, // 실제 업로드할 File
         inviteCode,
       },
     });

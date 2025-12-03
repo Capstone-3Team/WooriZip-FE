@@ -17,6 +17,7 @@ function BirthdateStep() {
     agreedTerms,
     nickname,
     profileImageUrl,
+    profileImageFile,
     inviteCode,
   } = location.state || {};
 
@@ -49,6 +50,7 @@ function BirthdateStep() {
         agreedTerms,
         nickname,
         profileImageUrl,
+        profileImageFile,
         birthdate: trimmedBirthdate,
         calendarType,
         inviteCode,

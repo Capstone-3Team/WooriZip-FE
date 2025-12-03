@@ -16,6 +16,7 @@ function PhoneNumberStep() {
     agreedTerms,
     nickname,
     profileImageUrl,
+    profileImageFile,
     birthdate,
     calendarType: initialCalendarType = "solar",
     inviteCode,
@@ -49,6 +50,7 @@ function PhoneNumberStep() {
         agreedTerms,
         nickname,
         profileImageUrl,
+        profileImageFile,
         birthdate,
         calendarType: initialCalendarType, // 수정 불가, 그대로 전달
         phone: trimmedPhone,
