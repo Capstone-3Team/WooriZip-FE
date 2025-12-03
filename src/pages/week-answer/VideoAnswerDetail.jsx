@@ -245,6 +245,12 @@ export default function VideoAnswerDetail() {
     fetchAll();
   }, [answerId]);
 
+  useEffect(() => {
+    if (answer) {
+      console.log("shortsStatus >>>", answer.shortsStatus);
+    }
+  }, [answer]);
+
   // 다른 영상 상세로 이동하면 비디오 재생 상태/시간 초기화
   useEffect(() => {
     setIsPlayingVideo(false);
@@ -347,6 +353,7 @@ export default function VideoAnswerDetail() {
         thumbnailUrl: answer.thumbnailUrl,
         title: answer.title,
         description: answer.summary,
+        isEdit: true, // 재수정 플래그
       },
     });
 
