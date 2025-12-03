@@ -11,20 +11,23 @@ import TextInput from "@/components/TextInput";
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
 
-// 썸네일 데이터 정규화 함수
-// - 썸네일이 "data:image/jpeg;base64,...." 같은 data URL로 들어오는 경우
-//   → 서버에는 순수 base64 데이터만 보내고 싶으니까 "data:...," 앞부분은 제거
-// - 이미 순수 base64 문자열만 들어왔다면 그대로 반환
+/**
+ * 썸네일 데이터 정규화 함수
+ *
+ * - 화면에서는 보통 "data:image/jpeg;base64,..." 같은 data URL 형태를 사용하지만,
+ *   백엔드에는 "순수 base64 문자열"만 보내는 게 일반적이라서 앞부분을 잘라낸다.
+ * - 이미 순수 base64 문자열만 들어왔다면 그대로 반환한다.
+ */
 const normalizeThumbnailData = (value) => {
   if (!value) return "";
 
-  // data URL 형식인지 확인
+  // value가 data URL("data:image/...;base64,...") 형식인 경우
   if (value.startsWith("data:image")) {
     const commaIndex = value.indexOf(",");
-    // "data:...," 이후의 부분만 잘라서 반환 (base64 순수 데이터)
+    // "data:...," 이후 부분만 잘라서 base64 데이터만 남긴다.
     return commaIndex !== -1 ? value.slice(commaIndex + 1) : value;
   }
-  // 이미 base64만 들어온 경우
+  // 이미 base64 문자열만 들어온 경우
   return value;
 };
 
@@ -32,16 +35,23 @@ export default function AddVideoAnswer() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // 이전 페이지(예: 촬영 페이지, 썸네일 편집 페이지)에서 넘어온 state
-  // - videoFile: 실제 영상 파일 객체 (있을 수도, 없을 수도 있음)
-  // - videoAnswerId: 백엔드에서 생성된 영상 답변 ID
-  // - questionId: 어떤 질문에 대한 답변인지
-  // - videoUrl: 재생용 영상 URL (S3 등)
-  // - thumbnailUrl: 썸네일 (data URL 또는 base64)
-  // - autoTitle / autoDescription: AI가 추천한 제목/내용
-  // - stateTitle / stateDescription: 사용자가 이미 한 번 수정한 제목/내용
+  /**
+   * 이전 페이지(예: 촬영 완료 → AI 분석 → 이 화면으로 이동)에서 넘겨주는 state들
+   *
+   * - videoAnswerId : 백엔드에서 생성한 영상 답변 ID
+   * - questionId    : 어떤 질문에 대한 답변인지
+   * - videoUrl      : 실제 영상이 저장된 경로(S3 URL 등)
+   * - thumbnailUrl  : 썸네일 (data URL 또는 순수 base64)
+   * - autoTitle     : AI가 추천한 제목
+   * - autoDescription : AI가 추천한 요약/설명
+   * - stateTitle / stateDescription :
+   *      사용자가 한 번 수정했다가 다시 돌아온 경우 이미 입력한 값을 복원하기 위한 용도
+   *
+   * ✅ 여기서 중요한 점:
+   *   - “실제 영상 파일(File 객체)”는 이 컴포넌트 기준으로는 주고받지 않는다.
+   *   - 백엔드와는 항상 videoUrl(문자열) 기준으로만 통신한다.
+   */
   const {
-    videoFile,
     videoAnswerId,
     questionId,
     videoUrl,
@@ -71,9 +81,13 @@ export default function AddVideoAnswer() {
   // 2. 썸네일 프리뷰 URL 메모이제이션
   // ==============================
 
-  // 화면에 보여줄 때는 "data:image/jpeg;base64,..." 형태로 필요하므로
-  // thumbnailData(순수 base64)를 data URL로 감싸서 사용
-  // - thumbnailData가 변경될 때만 다시 계산
+  /**
+   * thumbnailPreviewUrl
+   *
+   * - 화면에 <img>로 보여줄 땐 data URL 형식이 필요하므로,
+   *   내부에 들고 있는 base64(thumbnailData)를 "data:image/jpeg;base64,..."로 감싼다.
+   * - thumbnailData가 바뀔 때만 재계산되도록 useMemo 사용.
+   */
   const thumbnailPreviewUrl = useMemo(
     () => (thumbnailData ? `data:image/jpeg;base64,${thumbnailData}` : ""),
     [thumbnailData]
@@ -83,8 +97,11 @@ export default function AddVideoAnswer() {
   // 3. 썸네일 편집 페이지에서 돌아왔을 때 처리
   // ==============================
 
-  // EditVideoThumbnail → AddVideoAnswer로 돌아올 때
-  // location.state.thumbnailUrl에 새 썸네일이 담겨 들어올 수 있음
+  /**
+   * EditVideoThumbnail → AddVideoAnswer 로 다시 돌아올 때,
+   * location.state.thumbnailUrl 에 새 썸네일이 실려 올 수 있다.
+   * 이때도 normalizeThumbnailData를 통해 내부는 base64만 유지.
+   */
   useEffect(() => {
     if (location.state?.thumbnailUrl) {
       setThumbnailData(normalizeThumbnailData(location.state.thumbnailUrl));
@@ -101,21 +118,24 @@ export default function AddVideoAnswer() {
     navigate(-1);
   };
 
-  // “영상 및 썸네일 수정” 버튼 클릭 시
-  // - /edit-video 페이지로 이동해서 영상/썸네일을 다시 편집
-  // - returnTo / returnState를 함께 넘겨서, 편집 완료 후 다시 이 페이지로 돌아올 수 있게 함
+  /**
+   * “영상 및 썸네일 수정” 버튼 클릭 시
+   *
+   * - /edit-video 페이지로 이동해서 영상/썸네일을 다시 편집할 수 있다.
+   * - 이때도 영상은 File 객체가 아니라 videoUrl(문자열)을 넘겨준다.
+   * - 편집 완료 후 다시 이 페이지로 돌아올 수 있도록 returnTo / returnState 정보를 함께 전달한다.
+   */
   const handleEditVideo = () => {
     navigate("/edit-video", {
       state: {
-        videoFile,
+        // 실제 영상은 URL로만 관리한다.
         videoUrl,
-        // 편집 화면은 data URL로 쓰기 편하므로, preview용 data URL을 그대로 넘김
+        // 썸네일은 data URL 형식이 편하므로 preview URL을 넘겨줌
         thumbnailUrl: thumbnailPreviewUrl,
-        // 편집을 마친 뒤 돌아올 라우트
+        // 편집 이후 돌아올 라우트
         returnTo: "/answers/new",
-        // 돌아올 때 복원해야 할 state들
+        // 돌아올 때 복원할 값들
         returnState: {
-          videoFile,
           videoAnswerId,
           questionId,
           videoUrl,
@@ -129,16 +149,37 @@ export default function AddVideoAnswer() {
     });
   };
 
-  // “다시 찍기” 버튼 클릭 시
-  // - 현재 페이지를 스택에서 교체(replace)하면서 /week-answer로 이동
-  //   (뒤로가기 눌렀을 때 다시 AddVideoAnswer로 돌아오지 않도록)
+  /**
+   * “다시 찍기” 버튼 클릭 시
+   *
+   * - 이 영상 답변 플로우를 종료하고 다시 WeekAnswer(이번 주 질문 페이지)로 이동한다.
+   * - replace: true 를 사용해서, 히스토리 스택에서 이 페이지를 교체한다.
+   *   → 사용자가 뒤로가기를 눌렀을 때 다시 AddVideoAnswer로 돌아오지 않도록 하기 위함.
+   */
   const handleRetake = () => {
     navigate("/week-answer", { replace: true });
   };
 
-  // “영상 추가 완료” 버튼 클릭 시 → 영상 답변 정보 저장(수정)
+  /**
+   * “영상 추가 완료” 버튼 클릭 시
+   *
+   * - 이미 /video-answer 업로드 API에서 영상 파일은 처리되어 있고,
+   *   이 화면에서는 메타데이터(썸네일, 제목, 요약)만 수정한다고 가정한다.
+   *
+   * - 따라서 PUT /video-answer/{id} 요청 바디에는
+   *   thumbnailUrl(순수 base64), title, summary 정도만 보낸다.
+   *   (videoUrl은 백엔드가 기존 값을 유지)
+   *
+   *   예시: /video-answer/{id} 응답 스펙
+   *   {
+   *     "questionId": 0,
+   *     "videoUrl": "string"
+   *   }
+   *
+   *   → 실제 영상 URL 관리와 질문 ID 매핑은 백엔드에서 맡고,
+   *     이 페이지는 UI를 위한 부가 정보만 붙여주는 역할에 집중.
+   */
   const handleSubmit = async () => {
-    // 영상 답변 ID가 없으면 저장 불가 (백엔드에서 아직 ID가 생성되지 않은 경우)
     if (!videoAnswerId) {
       alert("영상 정보가 없어 저장할 수 없습니다. 다시 시도해 주세요.");
       return;
@@ -147,13 +188,12 @@ export default function AddVideoAnswer() {
     try {
       setIsSubmitting(true);
 
-      // 토큰을 여러 키 이름에서 찾아봄 (프로젝트 내에서 키 이름이 다를 수 있어서)
+      // 토큰: 프로젝트에 따라 키 이름이 다를 수 있어서 여러 후보를 확인
       const token =
         localStorage.getItem("accessToken") ||
         localStorage.getItem("token") ||
         localStorage.getItem("jwt");
 
-      // JSON 요청 헤더 구성
       const headers = {
         "Content-Type": "application/json",
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -161,7 +201,7 @@ export default function AddVideoAnswer() {
 
       // 백엔드에서 정의한 PUT /video-answer/{id} 요청 바디
       // - 이 페이지에서는 썸네일/제목/요약만 수정
-      // - thumbnailUrl에는 "순수 base64 문자열"만 담아서 보냄
+      // - thumbnailUrl은 순수 base64 문자열만 전송
       const bodyForPut = {
         thumbnailUrl: thumbnailData,
         title,
@@ -178,8 +218,8 @@ export default function AddVideoAnswer() {
         throw new Error("영상 답변을 저장하지 못했습니다.");
       }
 
-      // 응답 바디가 필요 없다면 굳이 값을 쓰지 않아도 되지만,
-      // 여기서는 형식을 맞춰 한 번 파싱만 해줌
+      // 응답에서 딱히 사용할 값이 없으면 파싱만 해도 되고,
+      // 아예 res.json()을 생략해도 무방하다. (여기서는 형식 맞춰 한 번 호출)
       await res.json();
 
       // 저장 완료 후 → 이번 주 답변 목록 페이지로 이동
@@ -283,7 +323,7 @@ export default function AddVideoAnswer() {
             다시 찍기
           </Button>
 
-          {/* 영상 추가 완료: PUT 호출 후 WeekAnswer로 이동 */}
+          {/* 영상 추가 완료: 메타데이터 저장 후 WeekAnswer로 이동 */}
           <Button
             size="large"
             variant="primary"
