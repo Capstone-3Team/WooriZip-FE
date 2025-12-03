@@ -27,6 +27,7 @@ import WeekAnswer from "@/pages/week-answer/WeekAnswer";
 import WeeklyRecords from "@/pages/week-answer/WeeklyRecords";
 import VideoAnswerDetail from "@/pages/week-answer/VideoAnswerDetail";
 import VideoProcessingLoading from "@/pages/week-answer/VideoProcessingLoading";
+import VideoCapturePage from "@/pages/week-answer/VideoCapturePage";
 import AddVideoAnswer from "@/pages/week-answer/AddVideoAnswer";
 import EditVideoThumbnail from "@/pages/week-answer/EditVideoThumbnail";
 
