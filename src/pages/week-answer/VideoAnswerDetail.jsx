@@ -54,6 +54,16 @@ function getAuthHeaders() {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+/**
+ * shortsStatus를 사람이 읽을 수 있는 문구로 바꾸는 헬퍼 (필요하면 확장)
+ */
+function isShortsPending(status) {
+  return status === "PENDING";
+}
+function isShortsDone(status) {
+  return status === "DONE";
+}
+
 // ==============================
 // 영상 답변 상세 페이지 컴포넌트
 // ==============================
@@ -211,6 +221,9 @@ export default function VideoAnswerDetail() {
           authorProfileImageUrl: answerJson.profileImageUrl || null,
           isMine: !!answerJson.owner,
           dateLabel: formatDateLabel(answerJson.createdAt),
+          // 펫 클립 상태/URL (비동기 처리 결과)
+          shortsStatus: answerJson.shortsStatus || null,
+          shortsUrl: answerJson.shortsUrl || null,
         });
 
         // 댓글 목록
@@ -232,7 +245,7 @@ export default function VideoAnswerDetail() {
     fetchAll();
   }, [answerId]);
 
-  // answerId가 바뀔 때마다 재생 상태/시간 초기화
+  // 다른 영상 상세로 이동하면 비디오 재생 상태/시간 초기화
   useEffect(() => {
     setIsPlayingVideo(false);
     if (videoRef.current) {
@@ -460,6 +473,17 @@ export default function VideoAnswerDetail() {
     }
   };
 
+  /**
+   * 펫 아카이브 페이지로 이동
+   * - shortsStatus === DONE 일 때만 노출되는 문구 클릭 시 호출
+   * - 지금은 단순히 /archive 로 이동시키고,
+   *   나중에 반려동물 탭이 따로 있으면 state나 query param으로 구분 가능
+   */
+  const handleGoPetArchive = (e) => {
+    e.stopPropagation(); // 바깥 클릭 이벤트로 전파되지 않게
+    navigate("/archive");
+  };
+
   // ==============================
   // 4) 렌더링
   // ==============================
@@ -481,7 +505,7 @@ export default function VideoAnswerDetail() {
         />
 
         <main className="flex-1 flex flex-col">
-          {/* 상단 영상 썸네일 + STT/요약 */}
+          {/* 상단 영상 썸네일 + STT/요약 + 펫 클립 상태 */}
           <section className="bg-yellow-20 px-6 py-4">
             <div className="relative">
               {/* 작성자 정보 영역 */}
@@ -613,6 +637,27 @@ export default function VideoAnswerDetail() {
                   </>
                 )}
               </div>
+
+              {/* 펫 클립 상태 안내 영역 (영상 영역 바로 아래 회색 텍스트) */}
+              {answer?.shortsStatus && (
+                <div className="mt-2">
+                  {isShortsPending(answer.shortsStatus) && (
+                    <p className="text-xs text-gray-60">
+                      AI가 반려동물 등장 여부를 분석 중이에요!
+                    </p>
+                  )}
+
+                  {isShortsDone(answer.shortsStatus) && (
+                    <button
+                      type="button"
+                      onClick={handleGoPetArchive}
+                      className="text-xs text-gray-60 underline underline-offset-2"
+                    >
+                      반려동물 영상 제작 완료! 지금 보러가기
+                    </button>
+                  )}
+                </div>
+              )}
 
               {/* STT/요약 텍스트 */}
               <p className="mt-4 text-sm text-text-main whitespace-pre-line">
