@@ -63,12 +63,49 @@ import EditFamilyNicknamePage from "./pages/mypage/EditFamilyNicknamePage";
 import TextSizeSettingsPage from "./pages/mypage/TextSizeSettingsPage";
 import TTSVoiceSettingsPage from "./pages/mypage/TTSVoiceSettingsPage";
 
-// 로그인 여부를 판단하는 함수 (임시 버전)
+// App.jsx 상단에 있는 로그인 여부 판단 함수 교체
 function checkIsLoggedIn() {
-  // 예: 로그인 성공 시 localStorage.setItem("isLoggedIn", "true") 해두고,
-  // 여기서 그 값을 읽어와서 판단
-  const flag = localStorage.getItem("isLoggedIn");
-  return flag === "true";
+  // 1) 토큰이 없으면 바로 로그아웃 상태
+  const token = localStorage.getItem("accessToken");
+  if (!token) {
+    localStorage.removeItem("isLoggedIn");
+    return false;
+  }
+
+  try {
+    // JWT: header.payload.signature 형태 → 가운데(payload)를 디코딩
+    const [, payloadBase64] = token.split(".");
+    const payloadJson = atob(
+      payloadBase64.replace(/-/g, "+").replace(/_/g, "/")
+    );
+    const payload = JSON.parse(payloadJson);
+
+    const exp = payload.exp; // 초 단위 (대부분 이렇게 옴)
+    if (!exp) {
+      // exp 없으면 그냥 로그인 된 걸로 취급
+      localStorage.setItem("isLoggedIn", "true");
+      return true;
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+
+    if (exp <= now) {
+      // 이미 만료 → 토큰/로그인 플래그 정리
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("isLoggedIn");
+      return false;
+    }
+
+    // 유효한 토큰
+    localStorage.setItem("isLoggedIn", "true");
+    return true;
+  } catch (e) {
+    // 토큰이 깨졌으면 로그아웃 처리
+    console.error("Invalid token", e);
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("isLoggedIn");
+    return false;
+  }
 }
 
 function App() {

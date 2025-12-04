@@ -90,6 +90,17 @@ function WeekAnswer() {
   // - 재렌더링과 상관없이 하나의 오디오 인스턴스를 유지하기 위함
   const ttsAudioRef = useRef(null);
 
+  // 🔐 401/403 → 토큰 삭제 + 로그인 페이지로 이동
+  const handleAuthError = (status) => {
+    if (status === 401 || status === 403) {
+      localStorage.removeItem(TOKEN_STORAGE_KEY);
+      localStorage.removeItem("isLoggedIn");
+      window.location.href = "/login";
+      return true; // 이미 처리했다는 의미
+    }
+    return false;
+  };
+
   // 가족 구성원이 나 혼자뿐인지 여부
   // - familyProfile.members가 존재하고 length > 0이면 "나 말고 다른 가족 있음"
   const hasOtherMembers =
@@ -131,6 +142,12 @@ function WeekAnswer() {
         method: "GET",
         headers,
       });
+
+      // 🔐 토큰 만료/권한 문제면 로그인으로 보내고 함수 종료
+      if (handleAuthError(res.status)) {
+        setIsTtsLoading(false);
+        return;
+      }
 
       if (!res.ok) {
         throw new Error("TTS 요청에 실패했습니다.");
@@ -214,6 +231,9 @@ function WeekAnswer() {
           headers,
         });
 
+        // 🔐 401/403이면 로그인으로 이동
+        if (handleAuthError(questionRes.status)) return;
+
         if (!questionRes.ok) {
           throw new Error("현재 질문을 불러오지 못했습니다.");
         }
@@ -239,6 +259,10 @@ function WeekAnswer() {
             headers,
           }),
         ]);
+
+        // 🔐 둘 중 하나라도 401/403이면 로그인으로 이동
+        if (handleAuthError(answersRes.status)) return;
+        if (handleAuthError(familyRes.status)) return;
 
         if (!answersRes.ok) {
           throw new Error("영상 답변 목록을 불러오지 못했습니다.");
