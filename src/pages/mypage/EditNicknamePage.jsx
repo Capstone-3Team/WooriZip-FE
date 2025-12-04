@@ -24,7 +24,7 @@ export default function EditNicknamePage() {
   const canSubmit = trimmedNickname.length > 0 && !isTooLong;
   const submitVariant = canSubmit ? "primary" : "notFocus";
 
-  const handleBack = () => navigate(-1);
+  const handleBack = () => navigate("/mypage/profile");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -55,7 +55,7 @@ export default function EditNicknamePage() {
       }
 
       // 성공 시 이전 화면으로
-      navigate(-1);
+      navigate("/mypage/profile");
     } catch (error) {
       console.error(error);
       setSubmitError("별명을 수정하지 못했어요. 잠시 후 다시 시도해주세요.");

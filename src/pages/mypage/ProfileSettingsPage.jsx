@@ -41,7 +41,7 @@ function formatBirth(dateStr) {
 
 export default function ProfileSettingsPage() {
   const navigate = useNavigate();
-  const handleBack = () => navigate(-1);
+  const handleBack = () => navigate("/mypage");
 
   /** 프로필 이미지 (캡쳐로 카메라/앨범 열기) */
   const fileInputRef = useRef(null);

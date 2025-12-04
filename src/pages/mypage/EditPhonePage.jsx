@@ -17,7 +17,7 @@ export default function EditPhonePage() {
 
   const trimmedPhone = phone.trim();
 
-  const handleClose = () => navigate(-1);
+  const handleClose = () => navigate("/mypage/profile");
 
   // 숫자만, 10~11자리 (01012345678 형식 가정)
   const onlyDigits = /^\d+$/;
@@ -70,7 +70,7 @@ export default function EditPhonePage() {
         throw new Error("휴대폰번호를 수정하지 못했습니다.");
       }
 
-      navigate(-1);
+      navigate("/mypage/profile");
     } catch (err) {
       console.error(err);
       setSubmitError(

@@ -57,7 +57,7 @@ function FamilyDetailPage() {
     fetchFamilyProfile();
   }, [navigate]);
 
-  const handleBack = () => navigate(-1);
+  const handleBack = () => navigate("/mypage");
 
   const handleEditFamilyName = () => {
     navigate("/mypage/edit-family-name");

@@ -118,7 +118,7 @@ export default function VideoAnswerDetail() {
 
   // 뒤로가기
   const handleBack = () => {
-    navigate(-1);
+    navigate("/week-answer");
   };
 
   /**
