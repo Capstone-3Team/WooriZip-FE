@@ -266,7 +266,47 @@ export default function MemberArchivePage() {
           }
         });
 
-        setMemberSections(Array.from(memberMap.values()));
+        // 1) 일단 현재까지 모인 멤버 섹션들을 배열로 변환
+        const rawSections = Array.from(memberMap.values());
+
+        // 2) /mypage/family-profile 기준으로 정렬해서 "가입 순" 고정
+        let orderedSections = rawSections;
+        try {
+          const familyRes = await fetch(
+            `${API_BASE_URL}/mypage/family-profile`,
+            { headers }
+          );
+
+          if (familyRes.ok) {
+            const family = await familyRes.json();
+
+            // 리더 + members 순서대로 닉네임 배열 만들기
+            const orderedNicknames = [];
+            if (family.leader?.nickname) {
+              orderedNicknames.push(family.leader.nickname);
+            }
+            if (Array.isArray(family.members)) {
+              family.members.forEach((m) => {
+                if (m.nickname) orderedNicknames.push(m.nickname);
+              });
+            }
+
+            const getIndex = (name) => {
+              const idx = orderedNicknames.indexOf(name);
+              return idx === -1 ? Number.MAX_SAFE_INTEGER : idx;
+            };
+
+            orderedSections = [...rawSections].sort(
+              (a, b) => getIndex(a.name) - getIndex(b.name)
+            );
+          }
+        } catch (e) {
+          console.error("failed to sort member sections by family-profile", e);
+          // 에러가 나면 그냥 rawSections 순서 그대로 사용
+          orderedSections = rawSections;
+        }
+
+        setMemberSections(orderedSections);
       } catch (error) {
         console.error(error);
       }
