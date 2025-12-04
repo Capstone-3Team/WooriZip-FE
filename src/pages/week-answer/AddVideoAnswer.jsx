@@ -113,10 +113,15 @@ export default function AddVideoAnswer() {
   // 4. 각종 핸들러
   // ==============================
 
-  // 상단 X 버튼: 이전 페이지로 단순히 뒤로 가기
-  // 이 부분 수정 필요 지금까지 작성한 데이터 다 없애고 main 페이지로 가는 게 맞는 것 같음.
+  // 상단 X 버튼
   const handleClose = () => {
-    navigate(-1);
+    if (isEdit && videoAnswerId) {
+      // 수정 플로우인 경우 → 해당 답변 상세로 이동
+      navigate(`/answers/${videoAnswerId}`, { replace: true });
+    } else {
+      // 새 답변 작성 플로우인 경우 → 주차 질문 목록으로
+      navigate("/week-answer", { replace: true });
+    }
   };
 
   /**

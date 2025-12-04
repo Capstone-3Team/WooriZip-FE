@@ -43,7 +43,7 @@ function ChangePasswordCurrent() {
         title="비밀번호 변경"
         bgClassName="bg-bg-app"
         leftIcon={<img src="/icons/close.svg" alt="닫기" className="w-8 h-8" />}
-        onLeftClick={() => navigate(-1)}
+        onLeftClick={() => navigate("/mypage/profile")}
         leftAriaLabel="닫기"
       />
 

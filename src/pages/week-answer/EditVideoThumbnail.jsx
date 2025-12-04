@@ -82,7 +82,7 @@ export default function EditVideoThumbnail() {
       });
     } else {
       // 혹시 returnTo가 없으면 그냥 뒤로가기(호환용)
-      navigate(-1);
+      navigate("/answers/new");
     }
   };
 

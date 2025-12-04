@@ -26,7 +26,7 @@ export default function EditFamilyNicknamePage() {
   const canSubmit = trimmed.length > 0 && !isTooLong;
   const submitVariant = canSubmit ? "primary" : "notFocus";
 
-  const handleBack = () => navigate(-1);
+  const handleBack = () => navigate("/mypage/family-detail");
 
   // 현재 가족 이름 + 마지막 수정자 조회
   useEffect(() => {
@@ -94,7 +94,7 @@ export default function EditFamilyNicknamePage() {
       }
 
       // 성공 시 이전 페이지로
-      navigate(-1);
+      navigate("/mypage/family-detail");
     } catch (error) {
       console.error(error);
       setSubmitError(
