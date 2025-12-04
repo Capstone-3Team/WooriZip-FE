@@ -50,12 +50,11 @@ function ArchiveSectionCard({ title, previewItems = [], onClick = () => {} }) {
           <img src="/icons/arrow-right.svg" alt="" className="w-5 h-5" />
         </div>
 
-        {/* 미리보기 영역: 데이터가 있을 때만 렌더링 */}
-        {hasPreview && (
+        {/* 미리보기 영역 */}
+        {hasPreview ? (
           <div className="grid grid-cols-3 gap-3">
             {visibleItems.map((item, idx) => {
               const src = item.thumbnailUrl;
-              // item.type이 오면 우선 사용, 없으면 URL 기반으로 타입 추론
               const type = item.type || (src ? detectMediaType(src) : "image");
 
               return (
@@ -63,10 +62,8 @@ function ArchiveSectionCard({ title, previewItems = [], onClick = () => {} }) {
                   key={idx}
                   className="flex-1 aspect-square rounded-lg bg-gray-10 overflow-hidden"
                 >
-                  {/* src가 있는 경우에만 미디어 렌더 */}
                   {src &&
                     (type === "video" ? (
-                      // 비디오 미리보기 (자동 재생은 하지 않고 썸네일처럼만 사용)
                       <video
                         src={src}
                         className="w-full h-full object-cover"
@@ -74,7 +71,6 @@ function ArchiveSectionCard({ title, previewItems = [], onClick = () => {} }) {
                         playsInline
                       />
                     ) : (
-                      // 이미지 미리보기
                       <img
                         src={src}
                         alt={item.alt || `${title} 미리보기`}
@@ -85,6 +81,9 @@ function ArchiveSectionCard({ title, previewItems = [], onClick = () => {} }) {
               );
             })}
           </div>
+        ) : (
+          // 프리뷰가 없을 때 안내 문구
+          <p className="text-sm text-gray-80">아직 기록이 없어요.</p>
         )}
       </button>
     </section>
