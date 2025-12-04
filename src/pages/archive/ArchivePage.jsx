@@ -34,7 +34,7 @@ function ArchivePage() {
   // =============================================
   useEffect(() => {
     // 로컬 스토리지에서 accessToken 가져오기
-    const token = localStorage.getItem("accessToken"); // TODO: 프로젝트 키에 맞게 수정
+    const token = localStorage.getItem("accessToken");
     if (!token) return;
 
     // 모든 API 요청 공통 헤더
@@ -43,112 +43,95 @@ function ArchivePage() {
       Accept: "*/*",
     };
 
-    // --------------------------------------------------
-    // 1) 전체 일상 피드 조회 (/post)
-    // - 최신 일상 기록 3개
-    // - 멤버별 최신 기록 1개씩 최대 3명
-    // --------------------------------------------------
-    const fetchPosts = async () => {
+    // /archive/main 하나만 호출해서
+    // daily / member / pet 세 섹션 데이터를 한 번에 가져오기
+    const fetchArchiveMain = async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/post`, {
+        const res = await fetch(`${API_BASE_URL}/archive/main`, {
           method: "GET",
           headers: commonHeaders,
         });
 
         if (!res.ok) {
-          throw new Error("failed to fetch /post");
+          throw new Error("failed to fetch /archive/main");
         }
 
-        const data = await res.json(); // [{ id, familyMemberId, mediaUrl, mediaUrls, ... }]
-
-        // -------------------------------
-        // 공통 썸네일 변환 작업
-        // 각 포스트마다 thumbnailUrl과 alt 텍스트 만들기
-        // -------------------------------
-        const mapped = data
-          .map((post) => {
-            const thumbnail =
-              post.mediaUrl ||
-              (post.mediaUrls && post.mediaUrls[0]) ||
-              "/images/fallback-thumbnail.png";
-
-            return {
-              thumbnailUrl: thumbnail,
-              alt:
-                post.description ||
-                `${post.writerNickname || "가족"}의 추억 (${formatKoreanDate(
-                  post.createdAt
-                )})`,
-              familyMemberId: post.familyMemberId,
-            };
-          })
-          .filter((item) => !!item.thumbnailUrl);
-
-        // -------------------------------
-        // 일상 프리뷰 – 최신 3개
-        // -------------------------------
-        setDailyPreviews(mapped.slice(0, 3));
-
-        // ------------------------------------------------------
-        // 멤버별 프리뷰 – familyMemberId 기준으로 서로 다른 멤버 3명까지
-        // ------------------------------------------------------
-        const byMember = [];
-        const seen = new Set();
-        for (const item of mapped) {
-          if (!item.familyMemberId) continue;
-          if (seen.has(item.familyMemberId)) continue;
-          seen.add(item.familyMemberId);
-          byMember.push(item);
-          if (byMember.length >= 3) break;
-        }
-        setMemberPreviews(byMember);
-      } catch (e) {
-        console.error(e);
-      }
-    };
-
-    // --------------------------------------------------
-    // 2) 반려동물 피드 조회 (/post/pet)
-    // - 반려동물 기록 최신 3건
-    // --------------------------------------------------
-    const fetchPetPosts = async () => {
-      try {
-        const res = await fetch(`${API_BASE_URL}/post/pet`, {
-          method: "GET",
-          headers: commonHeaders,
-        });
-
-        if (!res.ok) {
-          throw new Error("failed to fetch /post/pet");
-        }
-
+        // data: { daily: [...], member: [...], pet: [...] }
         const data = await res.json();
 
-        const mapped = data
-          .map((post) => {
-            const thumbnail =
-              post.mediaUrl ||
-              (post.mediaUrls && post.mediaUrls[0]) ||
-              "/images/fallback-thumbnail.png";
+        // ======================
+        // 1) 일상 기록 보관함 프리뷰
+        // ======================
+        // 최대 3개까지만 사용
+        const daily = (data.daily || []).slice(0, 3).map((item) => ({
+          // 썸네일이 있으면 그걸 사용, 없으면 fallback
+          thumbnailUrl:
+            item.thumbnailUrl || item.url || "/images/fallback-thumbnail.png",
+          // alt: 닉네임 + 날짜 조합, 없으면 기본 문구
+          alt:
+            (item.nickname &&
+              `${item.nickname}의 추억 (${formatKoreanDate(
+                item.createdAt
+              )})`) ||
+            `가족의 추억 (${formatKoreanDate(item.createdAt)})`,
+        }));
+        setDailyPreviews(daily);
 
-            return {
-              thumbnailUrl: thumbnail,
-              alt:
-                post.description ||
-                `반려동물 추억 (${formatKoreanDate(post.createdAt)})`,
-            };
-          })
-          .filter((item) => !!item.thumbnailUrl);
+        // ======================
+        // 2) 멤버별 추억 보관함 프리뷰
+        // ======================
+        // 요구사항: “멤버를 최대 3명까지 보여주되,
+        // 고유 멤버 수가 3명보다 적으면 그 수만큼만 보여주기”
+        // → /archive/main 의 member 배열에서 닉네임 기준으로 중복 제거
+        const memberRaw = Array.isArray(data.member) ? data.member : [];
 
-        setPetPreviews(mapped.slice(0, 3));
+        // 닉네임 기준으로 고유 멤버만 추출
+        const seenNicknames = new Set();
+        const uniqueMembers = [];
+
+        for (const item of memberRaw) {
+          const nickname = item.nickname || "";
+          if (seenNicknames.has(nickname)) continue;
+
+          seenNicknames.add(nickname);
+          uniqueMembers.push(item);
+
+          // 고유 멤버가 3명이 되면 더 이상 추가하지 않음
+          if (uniqueMembers.length >= 3) break;
+        }
+
+        const member = uniqueMembers.map((item) => ({
+          // 멤버 프로필 카드 느낌을 위해 profileImageUrl을 우선 사용
+          thumbnailUrl:
+            item.profileImageUrl ||
+            item.thumbnailUrl ||
+            "/images/fallback-profile.png",
+          alt: item.nickname || "가족 구성원",
+          nickname: item.nickname,
+        }));
+
+        setMemberPreviews(member);
+
+        // ======================
+        // 3) 반려동물과의 추억 보관함 프리뷰
+        // ======================
+        const pet = (data.pet || []).slice(0, 3).map((item) => ({
+          thumbnailUrl:
+            item.thumbnailUrl || item.url || "/images/fallback-thumbnail.png",
+          alt:
+            (item.nickname &&
+              `${item.nickname}와(과) 함께한 추억 (${formatKoreanDate(
+                item.createdAt
+              )})`) ||
+            `반려동물과의 추억 (${formatKoreanDate(item.createdAt)})`,
+        }));
+        setPetPreviews(pet);
       } catch (e) {
         console.error(e);
       }
     };
 
-    // 실제 API 호출 실행
-    fetchPosts();
-    fetchPetPosts();
+    fetchArchiveMain();
   }, []);
 
   return (
