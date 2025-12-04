@@ -43,27 +43,35 @@ function ArchivePage() {
       Accept: "*/*",
     };
 
-    // /archive/main 하나만 호출해서
-    // daily / member / pet 세 섹션 데이터를 한 번에 가져오기
-    const fetchArchiveMain = async () => {
+    const fetchArchiveAndFamily = async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/archive/main`, {
-          method: "GET",
-          headers: commonHeaders,
-        });
+        // 🔹 /archive/main + /mypage/family-profile 동시에 호출
+        const [archiveRes, familyRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/archive/main`, {
+            method: "GET",
+            headers: commonHeaders,
+          }),
+          fetch(`${API_BASE_URL}/mypage/family-profile`, {
+            method: "GET",
+            headers: commonHeaders,
+          }),
+        ]);
 
-        if (!res.ok) {
+        if (!archiveRes.ok) {
           throw new Error("failed to fetch /archive/main");
         }
+        if (!familyRes.ok) {
+          throw new Error("failed to fetch /mypage/family-profile");
+        }
 
-        // data: { daily: [...], member: [...], pet: [...] }
-        const data = await res.json();
+        const archive = await archiveRes.json(); // { daily, member, pet }
+        const family = await familyRes.json(); // { leader, members, ... }
 
         // ======================
         // 1) 일상 기록 보관함 프리뷰
         // ======================
         // 최대 3개까지만 사용
-        const daily = (data.daily || []).slice(0, 3).map((item) => ({
+        const daily = (archive.daily || []).slice(0, 3).map((item) => ({
           // 썸네일이 있으면 그걸 사용, 없으면 fallback
           thumbnailUrl:
             item.thumbnailUrl || item.url || "/images/fallback-thumbnail.png",
@@ -78,44 +86,68 @@ function ArchivePage() {
         setDailyPreviews(daily);
 
         // ======================
-        // 2) 멤버별 추억 보관함 프리뷰
+        // 3) 멤버별 프리뷰
         // ======================
-        // 요구사항: “멤버를 최대 3명까지 보여주되,
-        // 고유 멤버 수가 3명보다 적으면 그 수만큼만 보여주기”
-        // → /archive/main 의 member 배열에서 닉네임 기준으로 중복 제거
-        const memberRaw = Array.isArray(data.member) ? data.member : [];
+        // 3-1. /archive/main.member 에서
+        //      닉네임별 "가장 최신" 기록 하나씩만 뽑아두기
+        const archiveMembers = Array.isArray(archive.member)
+          ? archive.member
+          : [];
 
-        // 닉네임 기준으로 고유 멤버만 추출
-        const seenNicknames = new Set();
-        const uniqueMembers = [];
-
-        for (const item of memberRaw) {
+        const latestByNickname = {};
+        archiveMembers.forEach((item) => {
           const nickname = item.nickname || "";
-          if (seenNicknames.has(nickname)) continue;
+          if (!nickname) return;
 
-          seenNicknames.add(nickname);
-          uniqueMembers.push(item);
+          const existing = latestByNickname[nickname];
+          if (
+            !existing ||
+            new Date(item.createdAt) > new Date(existing.createdAt)
+          ) {
+            latestByNickname[nickname] = item;
+          }
+        });
 
-          // 고유 멤버가 3명이 되면 더 이상 추가하지 않음
-          if (uniqueMembers.length >= 3) break;
+        // 3-2. /mypage/family-profile 기준으로
+        //      리더 + 멤버를 "가입 순서"대로 배열 만들기
+        const orderedMembers = [];
+        if (family.leader) {
+          orderedMembers.push(family.leader);
+        }
+        if (Array.isArray(family.members)) {
+          orderedMembers.push(...family.members);
         }
 
-        const member = uniqueMembers.map((item) => ({
-          // 멤버 프로필 카드 느낌을 위해 profileImageUrl을 우선 사용
-          thumbnailUrl:
-            item.profileImageUrl ||
-            item.thumbnailUrl ||
-            "/images/fallback-profile.png",
-          alt: item.nickname || "가족 구성원",
-          nickname: item.nickname,
-        }));
+        // 가입일 순이라고 가정하고 앞에서부터 최대 3명만 사용
+        const top3 = orderedMembers.slice(0, 3);
 
-        setMemberPreviews(member);
+        const memberPreviews = top3.map((m) => {
+          const nick = m.nickname || "";
+          const preview = latestByNickname[nick]; // 이 멤버의 최신 기록(있을 수도, 없을 수도)
+
+          // 썸네일은 항상 "멤버 프로필" 기준
+          const thumbnailUrl = m.profileImage || "/images/fallback-profile.png";
+
+          // alt 텍스트는 최신 기록이 있으면 그 정보로, 없으면 기본 문구
+          const alt = preview
+            ? `${nick}의 추억 (${formatKoreanDate(preview.createdAt)})`
+            : `${nick}의 추억을 아직 남기지 않았어요.`;
+
+          return {
+            thumbnailUrl,
+            alt,
+            nickname: nick,
+            // type은 혹시 나중에 쓸 일 있을까 봐 남겨두되, 기본은 image
+            type: "image",
+          };
+        });
+
+        setMemberPreviews(memberPreviews);
 
         // ======================
         // 3) 반려동물과의 추억 보관함 프리뷰
         // ======================
-        const pet = (data.pet || []).slice(0, 3).map((item) => ({
+        const pet = (archive.pet || []).slice(0, 3).map((item) => ({
           thumbnailUrl:
             item.thumbnailUrl || item.url || "/images/fallback-thumbnail.png",
           alt:
@@ -131,7 +163,7 @@ function ArchivePage() {
       }
     };
 
-    fetchArchiveMain();
+    fetchArchiveAndFamily();
   }, []);
 
   return (
