@@ -8,20 +8,57 @@ function ArchiveMediaDetail({
   onClose,
   onSave,
 }) {
-  const handleSave = () => {
-    // TODO: 실제 저장(다운로드) 로직으로 교체
-    // 기본 예시: 이미지/영상 파일 새 탭으로 열기
+  const handleSave = async () => {
+    console.log("[ArchiveMediaDetail] handleSave called", {
+      src,
+      mediaType,
+      hasOnSave: !!onSave,
+    });
+
+    // 부모에서 onSave를 넘겨줬으면 그걸 우선 사용
     if (onSave) {
-      onSave();
+      await onSave();
       return;
     }
 
-    const link = document.createElement("a");
-    link.href = src;
-    link.download = "";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    if (!src) return;
+
+    try {
+      // 1) 먼저 S3에서 파일을 받아오기
+      const response = await fetch(src);
+      if (!response.ok) {
+        console.error("download fetch failed", response.status);
+        // 혹시라도 실패하면 마지막으로 새 탭으로라도 열어줌
+        window.open(src, "_blank");
+        return;
+      }
+
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+
+      // 2) 파일명 만들기 (날짜 + 확장자)
+      const cleanUrl = src.split("?")[0];
+      const match = cleanUrl.match(/\.([a-zA-Z0-9]+)$/);
+      const ext = match?.[1] || (mediaType === "video" ? "mp4" : "jpg");
+
+      const baseName =
+        (dateLabel && dateLabel.replace(/\s+/g, "_")) || "woorizip_media";
+      const fileName = `${baseName}.${ext}`;
+
+      // 3) 숨은 a 태그로 다운로드 트리거
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      // 4) blob URL 정리
+      URL.revokeObjectURL(blobUrl);
+    } catch (e) {
+      console.error("failed to download media", e);
+      window.open(src, "_blank");
+    }
   };
 
   return (

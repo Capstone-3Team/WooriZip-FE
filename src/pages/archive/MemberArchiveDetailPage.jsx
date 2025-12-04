@@ -14,13 +14,35 @@ export default function MemberArchiveDetailPage() {
     return null;
   }
 
+  const handleSave = () => {
+    const src = item.src;
+    if (!src) return;
+
+    const cleanUrl = src.split("?")[0];
+    const match = cleanUrl.match(/\.([a-zA-Z0-9]+)$/);
+    const ext = match?.[1] || (item.type === "video" ? "mp4" : "jpg");
+
+    // 닉네임 + 날짜 조합 파일명
+    const namePart = item.nickname || "member";
+    const datePart =
+      (item.dateLabel && item.dateLabel.replace(/\s+/g, "_")) || "archive";
+    const fileName = `${namePart}_${datePart}.${ext}`;
+
+    const link = document.createElement("a");
+    link.href = src;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  };
+
   return (
     <ArchiveMediaDetail
       dateLabel={item.dateLabel}
       mediaType={item.type === "video" ? "video" : "image"}
       src={item.src}
       onClose={() => navigate(-1)}
-      // onSave 안 넘기면 기본 다운로드 로직 사용
+      onSave={handleSave}
     />
   );
 }
