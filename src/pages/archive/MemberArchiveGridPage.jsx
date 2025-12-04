@@ -5,6 +5,8 @@ import ArchiveFilterDropdown from "@/components/archive/ArchiveFilterDropdown";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const ALBUM_MEMBER_URL = `${API_BASE_URL}/album/member`;
+// 멤버별 즐겨찾기 로컬스토리지 키 prefix
+const MEMBER_FAVORITES_PREFIX = "memberArchiveFavorites:";
 
 // ============================
 // 1. 공통 유틸 함수들
@@ -49,10 +51,8 @@ export default function MemberArchiveGridPage() {
   //   /album/member/{memberId} 호출해서 데이터 불러오기
   // ----------------------------
   useEffect(() => {
-    // URL 파라미터에 memberId가 없으면 아무 것도 하지 않음
     if (!memberId) return;
 
-    // 로그인 토큰 가져오기
     const token = localStorage.getItem("accessToken");
     if (!token) return;
 
@@ -61,13 +61,10 @@ export default function MemberArchiveGridPage() {
       Accept: "*/*",
     };
 
-    // 멤버별 보관함 데이터 로드
     async function loadData() {
       try {
-        // ✅ /album/member/{memberId} 호출
-        const res = await fetch(`${API_BASE_URL}/album/member/${memberId}`, {
-          headers,
-        });
+        // ✅ 멤버별 보관함 API 호출
+        const res = await fetch(`${ALBUM_MEMBER_URL}/${memberId}`, { headers });
 
         if (!res.ok) {
           throw new Error("failed to fetch /album/member");
@@ -77,32 +74,50 @@ export default function MemberArchiveGridPage() {
         const data = await res.json();
         const albumItems = Array.isArray(data) ? data : [];
 
-        // createdAt 기준 최신순 정렬
+        // 최신순 정렬
         const sorted = [...albumItems].sort(
           (a, b) =>
             new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
 
-        // 그리드에서 바로 쓸 수 있는 형태로 매핑
+        // 🔹 이 멤버의 즐겨찾기 목록 로드
+        const favoritesKey = `${MEMBER_FAVORITES_PREFIX}${memberId}`;
+        let favoriteIds = [];
+        try {
+          const raw = localStorage.getItem(favoritesKey);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) favoriteIds = parsed;
+          }
+        } catch (e) {
+          console.error("failed to parse member favorites", e);
+        }
+        const favoriteSet = new Set(favoriteIds);
+
+        // 그리드에서 쓸 아이템으로 매핑
         const gridItems = sorted
-          .map((item, index) => {
+          .map((item) => {
             if (!item.url) return null;
 
+            // type: IMAGE / VIDEO / VIDEO_ANSWER ...
             const rawType = (item.type || "").toUpperCase();
-
-            // 🔹 VIDEO + VIDEO_ANSWER 둘 다 "video" 로 처리
             const type =
               rawType === "VIDEO" || rawType === "VIDEO_ANSWER"
                 ? "video"
                 : "image";
 
+            // 🔹 /album/member에는 id가 없으니
+            //    type + url + createdAt 조합으로 안정적인 id 생성
+            const stableId = `${rawType}_${item.url}_${item.createdAt}`;
+
             return {
-              id: `ALBUM_${index}`,
-              type, // "video" | "image"
-              src: item.url, // S3 PNG / MOV / WEBM 그대로 사용
+              id: stableId,
+              type,
+              src: item.url,
               createdAt: item.createdAt,
               dateLabel: formatKoreanDate(item.createdAt),
-              isFavorite: false,
+              // 저장된 즐겨찾기 목록에 있으면 true
+              isFavorite: favoriteSet.has(stableId),
               nickname: item.nickname,
             };
           })
@@ -110,9 +125,9 @@ export default function MemberArchiveGridPage() {
 
         setItems(gridItems);
 
-        // 상단 헤더에 표시할 멤버 이름
-        if (sorted[0]?.nickname) {
-          setMemberName(sorted[0].nickname);
+        // 상단 헤더 제목: 멤버 이름
+        if (gridItems[0]?.nickname) {
+          setMemberName(gridItems[0].nickname);
         }
       } catch (error) {
         console.error(error);
@@ -124,11 +139,21 @@ export default function MemberArchiveGridPage() {
 
   // 즐겨찾기 토글 (프론트 로컬 상태로만 반영)
   const toggleFavorite = (id) => {
-    setItems((prev) =>
-      prev.map((item) =>
+    setItems((prev) => {
+      const updated = prev.map((item) =>
         item.id === id ? { ...item, isFavorite: !item.isFavorite } : item
-      )
-    );
+      );
+
+      // 🔹 현재 멤버 id 기준으로 즐겨찾기 저장
+      const favoritesKey = `${MEMBER_FAVORITES_PREFIX}${memberId}`;
+      const favoriteIds = updated
+        .filter((item) => item.isFavorite)
+        .map((item) => item.id);
+
+      localStorage.setItem(favoritesKey, JSON.stringify(favoriteIds));
+
+      return updated;
+    });
   };
 
   // 필터 아이콘 클릭 시 드롭다운 토글
