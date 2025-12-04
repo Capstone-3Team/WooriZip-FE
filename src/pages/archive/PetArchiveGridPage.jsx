@@ -1,42 +1,131 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/layouts/Header";
 import ArchiveFilterDropdown from "@/components/archive/ArchiveFilterDropdown";
 
-// TODO: 나중에 API 데이터로 교체
-const PET_ITEMS = [
-  {
-    id: 1,
-    type: "image",
-    src: "/mock/pet-1.jpeg",
-    dateLabel: "2025년 11월 6일",
-    isFavorite: true,
-  },
-  {
-    id: 2,
-    type: "image",
-    src: "/mock/member-2.jpeg",
-    dateLabel: "2025년 11월 6일",
-    isFavorite: false,
-  },
-  {
-    id: 3,
-    type: "video",
-    src: "/mock/member-3.jpg", // 영상이면 썸네일
-    dateLabel: "2025년 11월 6일",
-    isFavorite: true,
-  },
-  // ...필요하면 더 추가
-];
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const PET_POSTS_URL = `${API_BASE_URL}/post/pet`;
+
+function extractImageUrl(value) {
+  if (!value) return null;
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+
+    // 이미 완전한 URL / data URL 이면 그대로 사용
+    if (
+      trimmed.startsWith("http://") ||
+      trimmed.startsWith("https://") ||
+      trimmed.startsWith("data:") ||
+      trimmed.startsWith("blob:") ||
+      trimmed.startsWith("/")
+    ) {
+      return trimmed;
+    }
+
+    // base64 로 보이는 긴 문자열이면 data URL 로 감싸기
+    const looksLikeBase64 =
+      /^[0-9A-Za-z+/=]+$/.test(trimmed) && trimmed.length > 100;
+
+    if (looksLikeBase64) {
+      return `data:image/jpeg;base64,${trimmed}`;
+    }
+
+    // 나머지는 일단 그대로
+    return trimmed;
+  }
+
+  if (typeof value === "object") {
+    const cand =
+      value.url ||
+      value.imageUrl ||
+      value.fileUrl ||
+      value.path ||
+      value.location ||
+      null;
+    return typeof cand === "string" ? extractImageUrl(cand) : null;
+  }
+
+  return null;
+}
+
+function detectMediaType(url) {
+  if (!url) return "image";
+  const lowered = url.toLowerCase();
+  if (
+    lowered.endsWith(".mp4") ||
+    lowered.endsWith(".mov") ||
+    lowered.endsWith(".avi") ||
+    lowered.endsWith(".webm")
+  ) {
+    return "video";
+  }
+  return "image";
+}
+
+function formatKoreanDate(isoString) {
+  if (!isoString) return "";
+  const d = new Date(isoString);
+  const year = d.getFullYear();
+  const month = d.getMonth() + 1;
+  const date = d.getDate();
+  return `${year}년 ${month}월 ${date}일`;
+}
 
 export default function PetArchiveGridPage() {
   const navigate = useNavigate();
 
-  const [items, setItems] = useState(PET_ITEMS);
-  const [filter, setFilter] = useState("all"); // all | favorite | image | video
+  const [items, setItems] = useState([]);
+  const [filter, setFilter] = useState("all");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   const handleBack = () => navigate(-1);
+
+  useEffect(() => {
+    const token = localStorage.getItem("accessToken");
+    if (!token) return;
+
+    async function loadPetPosts() {
+      try {
+        const res = await fetch(PET_POSTS_URL, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "*/*",
+          },
+        });
+
+        if (!res.ok) throw new Error("failed to fetch /post/pet");
+
+        const data = await res.json();
+
+        const mapped = (Array.isArray(data) ? data : [])
+          .map((post) => {
+            const mediaUrl =
+              extractImageUrl(post.mediaUrl) ||
+              (Array.isArray(post.mediaUrls)
+                ? extractImageUrl(post.mediaUrls[0])
+                : null);
+
+            if (!mediaUrl) return null;
+
+            return {
+              id: post.id,
+              type: detectMediaType(mediaUrl),
+              src: mediaUrl,
+              dateLabel: formatKoreanDate(post.createdAt),
+              isFavorite: false,
+            };
+          })
+          .filter(Boolean);
+
+        setItems(mapped);
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    loadPetPosts();
+  }, []);
 
   const toggleFavorite = (id) => {
     setItems((prev) =>
@@ -87,19 +176,34 @@ export default function PetArchiveGridPage() {
       <main className="flex-1 bg-gray-10">
         <div className="grid grid-cols-3 border-t border-gray-20">
           {filteredItems.map((item) => (
-            <button
+            <div
               key={item.id}
-              type="button"
-              className="relative aspect-square border border-gray-20 bg-gray-10 overflow-hidden"
+              role="button"
+              tabIndex={0}
+              className="relative aspect-square border border-gray-20 bg-gray-10 overflow-hidden cursor-pointer"
               onClick={() => handleOpenDetail(item)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  handleOpenDetail(item);
+                }
+              }}
             >
-              <img
-                src={item.src}
-                alt={item.dateLabel}
-                className="w-full h-full object-cover"
-              />
+              {item.type === "video" ? (
+                <video
+                  src={item.src}
+                  className="w-full h-full object-cover"
+                  muted
+                  playsInline
+                />
+              ) : (
+                <img
+                  src={item.src}
+                  alt={item.dateLabel}
+                  className="w-full h-full object-cover"
+                />
+              )}
 
-              {/* 즐겨찾기 하트 */}
               <button
                 type="button"
                 className="absolute top-1 right-1 z-10"
@@ -118,7 +222,7 @@ export default function PetArchiveGridPage() {
                   className="w-4 h-4"
                 />
               </button>
-            </button>
+            </div>
           ))}
         </div>
       </main>
