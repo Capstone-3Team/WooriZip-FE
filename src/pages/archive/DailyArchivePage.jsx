@@ -6,6 +6,21 @@ import ArchiveFilterDropdown from "@/components/archive/ArchiveFilterDropdown";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 // 일상 기록은 /post API 사용
 const DAILY_POSTS_URL = `${API_BASE_URL}/post`;
+// 일상 보관함 즐겨찾기 로컬스토리지 키
+const DAILY_FAVORITES_KEY = "dailyArchiveFavorites";
+
+// 로컬스토리지에서 즐겨찾기 ID 목록 로드
+function loadDailyFavorites() {
+  try {
+    const raw = localStorage.getItem(DAILY_FAVORITES_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    console.error("failed to parse daily favorites", e);
+    return [];
+  }
+}
 
 // ======================================
 // 이미지 URL 정규화 헬퍼
@@ -126,6 +141,10 @@ export default function DailyArchivePage() {
         // /post 응답: [{ id, mediaUrl, mediaUrls, createdAt, ... }]
         const data = await res.json();
 
+        // 저장된 즐겨찾기 목록 불러와서 Set으로 보관
+        const favoriteIds = loadDailyFavorites();
+        const favoriteSet = new Set(favoriteIds);
+
         const mapped = (Array.isArray(data) ? data : [])
           .map((post) => {
             // 우선순위: 단일 mediaUrl → mediaUrls[0]
@@ -144,8 +163,8 @@ export default function DailyArchivePage() {
               type: detectMediaType(mediaUrl),
               src: mediaUrl,
               dateLabel: formatKoreanDate(post.createdAt),
-              // 즐겨찾기는 프론트 로컬 상태로만 관리
-              isFavorite: false,
+              // 로컬스토리지에 있으면 즐겨찾기 true
+              isFavorite: favoriteSet.has(post.id),
             };
           })
           .filter(Boolean);
@@ -163,11 +182,20 @@ export default function DailyArchivePage() {
 
   // 즐겨찾기 토글
   const toggleFavorite = (id) => {
-    setItems((prev) =>
-      prev.map((item) =>
+    setItems((prev) => {
+      const updated = prev.map((item) =>
         item.id === id ? { ...item, isFavorite: !item.isFavorite } : item
-      )
-    );
+      );
+
+      // 즐겨찾기된 아이템들의 id만 저장
+      const favoriteIds = updated
+        .filter((item) => item.isFavorite)
+        .map((item) => item.id);
+
+      localStorage.setItem(DAILY_FAVORITES_KEY, JSON.stringify(favoriteIds));
+
+      return updated;
+    });
   };
 
   // 필터 버튼 클릭 시 드롭다운 열기/닫기
