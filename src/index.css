@@ -54,6 +54,13 @@
   --color-gray-60: #828282;
   --color-gray-40: #bdbdbd;
   --color-gray-20: #e0e0e0;
+
+  /* 텍스트 크기 토큰 (Tailwind 기본값 기준) */
+  --text-xs: 0.75rem; /* text-xs */
+  --text-sm: 0.875rem; /* text-sm */
+  --text-base: 1rem; /* text-base */
+  --text-lg: 1.125rem; /* text-lg */
+  --text-xl: 1.25rem; /* text-xl */
 }
 
 @utility font-logo {
@@ -110,13 +117,25 @@ body,
   height: 100%;
 }
 
+/* 기본 바디 스타일 */
 /* 페이지 전체가 좌우 제스처에 흔들리지 않게 */
 body {
+  margin: 0;
+  font-family: var(--font-sans);
   overscroll-behavior: none; /* 위아래 끝에서 튕기는 기본 브라우저 동작도 방지 */
   touch-action: pan-y; /* 세로 스크롤만 허용, 가로 스와이프는 컴포넌트에서만 처리 */
 }
 
-/* 필요 시 커스텀 스타일을 여기에 추가
-   예: 유틸리티로 반복되는 스타일을 만들고 싶다면 @theme/@utility 사용
-   (v4에서는 별도의 postcss/tailwind.config 없이도 동작)
-*/
+/* ================================
+   글자 크기 모드
+   - default: @theme 기본값 사용
+   - large: 1.5단계 크게 (한 번만 키움)
+   ================================ */
+html.text-size-large {
+  /* 기본보다 한두 단계씩 업된 느낌으로 설정 */
+  --text-xs: 1rem; /* base 정도 */
+  --text-sm: 1.125rem; /* lg 정도 */
+  --text-base: 1.25rem; /* xl 정도 */
+  --text-lg: 1.5rem; /* 제목 크게 */
+  --text-xl: 1.75rem;
+}
