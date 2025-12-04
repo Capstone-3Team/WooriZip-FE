@@ -1,44 +1,130 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/layouts/Header";
 import ArchiveFilterDropdown from "@/components/archive/ArchiveFilterDropdown";
 
-// TODO: 나중에 실제 데이터로 교체
-const MOCK_ITEMS = [
-  {
-    id: 1,
-    type: "image",
-    src: "/mock/daily-1.png",
-    dateLabel: "2025년 11월 6일",
-    isFavorite: false,
-  },
-  {
-    id: 2,
-    type: "image",
-    src: "/mock/daily-2.png",
-    dateLabel: "2025년 11월 13일",
-    isFavorite: false,
-  },
-  {
-    id: 3,
-    type: "video",
-    src: "/mock/member-3.jpg", // 영상 썸네일 (실제 영상 src 따로 둘 수도 있음)
-    dateLabel: "2025년 11월 27일",
-    isFavorite: true,
-  },
-  // ...추가 mock
-];
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const DAILY_POSTS_URL = `${API_BASE_URL}/post`;
+
+function extractImageUrl(value) {
+  if (!value) return null;
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+
+    // 이미 완전한 URL / data URL 이면 그대로 사용
+    if (
+      trimmed.startsWith("http://") ||
+      trimmed.startsWith("https://") ||
+      trimmed.startsWith("data:") ||
+      trimmed.startsWith("blob:") ||
+      trimmed.startsWith("/")
+    ) {
+      return trimmed;
+    }
+
+    // base64 로 보이는 긴 문자열이면 data URL 로 감싸기
+    const looksLikeBase64 =
+      /^[0-9A-Za-z+/=]+$/.test(trimmed) && trimmed.length > 100;
+
+    if (looksLikeBase64) {
+      return `data:image/jpeg;base64,${trimmed}`;
+    }
+
+    // 나머지는 일단 그대로
+    return trimmed;
+  }
+
+  if (typeof value === "object") {
+    const cand =
+      value.url ||
+      value.imageUrl ||
+      value.fileUrl ||
+      value.path ||
+      value.location ||
+      null;
+    return typeof cand === "string" ? extractImageUrl(cand) : null;
+  }
+
+  return null;
+}
+
+function detectMediaType(url) {
+  if (!url) return "image";
+  const lowered = url.toLowerCase();
+  if (
+    lowered.endsWith(".mp4") ||
+    lowered.endsWith(".mov") ||
+    lowered.endsWith(".avi") ||
+    lowered.endsWith(".webm")
+  ) {
+    return "video";
+  }
+  return "image";
+}
+
+function formatKoreanDate(isoString) {
+  if (!isoString) return "";
+  const d = new Date(isoString);
+  const year = d.getFullYear();
+  const month = d.getMonth() + 1;
+  const date = d.getDate();
+  return `${year}년 ${month}월 ${date}일`;
+}
 
 export default function DailyArchivePage() {
   const navigate = useNavigate();
 
-  const [items, setItems] = useState(MOCK_ITEMS);
-
-  // 🔽 필터 상태
-  const [filter, setFilter] = useState("all"); // "all" | "favorite" | "image" | "video"
+  const [items, setItems] = useState([]);
+  const [filter, setFilter] = useState("all");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   const handleBack = () => navigate(-1);
+
+  useEffect(() => {
+    const token = localStorage.getItem("accessToken");
+    if (!token) return;
+
+    async function loadPosts() {
+      try {
+        const res = await fetch(DAILY_POSTS_URL, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "*/*",
+          },
+        });
+
+        if (!res.ok) throw new Error("failed to fetch /post");
+
+        const data = await res.json();
+        const mapped = (Array.isArray(data) ? data : [])
+          .map((post) => {
+            const mediaUrl =
+              extractImageUrl(post.mediaUrl) ||
+              (Array.isArray(post.mediaUrls)
+                ? extractImageUrl(post.mediaUrls[0])
+                : null);
+
+            if (!mediaUrl) return null;
+
+            return {
+              id: post.id,
+              type: detectMediaType(mediaUrl),
+              src: mediaUrl,
+              dateLabel: formatKoreanDate(post.createdAt),
+              isFavorite: false,
+            };
+          })
+          .filter(Boolean);
+
+        setItems(mapped);
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    loadPosts();
+  }, []);
 
   const toggleFavorite = (id) => {
     setItems((prev) =>
@@ -48,27 +134,23 @@ export default function DailyArchivePage() {
     );
   };
 
-  // 필터 아이콘 클릭 → 박스 열기/닫기
   const handleFilterIconClick = () => {
     setIsFilterOpen((prev) => !prev);
   };
 
-  // 드롭다운에서 옵션 선택
   const handleChangeFilter = (value) => {
     setFilter(value);
     setIsFilterOpen(false);
   };
 
-  // 실제로 보여줄 아이템
   const filteredItems = items.filter((item) => {
     if (filter === "favorite") return item.isFavorite;
     if (filter === "image") return item.type === "image";
     if (filter === "video") return item.type === "video";
-    return true; // "all"
+    return true;
   });
 
   const handleOpenDetail = (item) => {
-    // 상세 페이지로 이동하면서 선택한 미디어 정보를 넘김
     navigate("/archive/daily/detail", { state: { item } });
   };
 
@@ -90,29 +172,45 @@ export default function DailyArchivePage() {
         rightAriaLabel="필터 열기"
       />
 
-      {/* 앨범 그리드 */}
       <main className="flex-1 bg-gray-10">
         <div className="grid grid-cols-3 border-t border-gray-20">
           {filteredItems.map((item) => (
-            <button
+            // 🔹 바깥을 div 로 바꾸고, role/button 처리
+            <div
               key={item.id}
-              type="button"
-              className="relative aspect-square border border-gray-20 bg-gray-10 overflow-hidden"
+              role="button"
+              tabIndex={0}
+              className="relative aspect-square border border-gray-20 bg-gray-10 overflow-hidden cursor-pointer"
               onClick={() => handleOpenDetail(item)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  handleOpenDetail(item);
+                }
+              }}
             >
-              {/* 미리보기 이미지/썸네일 */}
-              <img
-                src={item.src}
-                alt={item.dateLabel}
-                className="w-full h-full object-cover"
-              />
+              {/* 이미지 / 비디오 분기 */}
+              {item.type === "video" ? (
+                <video
+                  src={item.src}
+                  className="w-full h-full object-cover"
+                  muted
+                  playsInline
+                />
+              ) : (
+                <img
+                  src={item.src}
+                  alt={item.dateLabel}
+                  className="w-full h-full object-cover"
+                />
+              )}
 
-              {/* 즐겨찾기 하트 (우상단) */}
+              {/* 안쪽 하트는 그대로 button 사용 */}
               <button
                 type="button"
                 className="absolute top-1 right-1 z-10"
                 onClick={(e) => {
-                  e.stopPropagation(); // 상세로 넘어가는 클릭 막기
+                  e.stopPropagation();
                   toggleFavorite(item.id);
                 }}
               >
@@ -126,7 +224,7 @@ export default function DailyArchivePage() {
                   className="w-4 h-4"
                 />
               </button>
-            </button>
+            </div>
           ))}
         </div>
 
