@@ -15,16 +15,18 @@ function extractImageUrl(value) {
   if (typeof value === "string") {
     const trimmed = value.trim();
 
+    // 1) 이미 완성된 URL / data / blob 인 경우
     if (
       trimmed.startsWith("http://") ||
       trimmed.startsWith("https://") ||
       trimmed.startsWith("data:") ||
-      trimmed.startsWith("blob:") ||
-      trimmed.startsWith("/")
+      trimmed.startsWith("blob:")
     ) {
       return trimmed;
     }
 
+    // 2) 순수 base64 데이터인지 먼저 판별
+    //    ("/9j..." 처럼 /로 시작하는 JPEG base64도 여기서 잡힘)
     const looksLikeBase64 =
       /^[0-9A-Za-z+/=]+$/.test(trimmed) && trimmed.length > 100;
 
@@ -32,6 +34,12 @@ function extractImageUrl(value) {
       return `data:image/jpeg;base64,${trimmed}`;
     }
 
+    // 3) 그 외에 /로 시작하면 서버 절대 경로로 취급
+    if (trimmed.startsWith("/")) {
+      return trimmed;
+    }
+
+    // 4) 나머지는 그냥 문자열 그대로 사용
     return trimmed;
   }
 
@@ -236,13 +244,20 @@ export default function MemberArchivePage() {
           }
 
           const section = memberMap.get(key);
+
+          // 각 멤버당 올린 순서(최신순) 기준 최대 3개까지만
           if (section.previews.length < 3) {
             const thumb = extractImageUrl(item.thumbnailUrl || item.mediaUrl);
 
             if (thumb) {
+              // ✅ 이 페이지에서는 영상도 "이미지 썸네일"로만 보여주기
+              // VIDEO_ANSWER 인 경우에도 이미지로 렌더되도록 type을 강제로 "image"로 설정
+              const previewType =
+                item.source === "VIDEO_ANSWER" ? "image" : item.mediaType;
+
               section.previews.push({
-                thumbnailUrl: thumb, // ✅ URL / data URL 보장
-                type: item.mediaType, // ✅ "image" | "video"
+                thumbnailUrl: thumb,
+                type: previewType,
                 alt: `${section.name}의 추억 (${formatKoreanDate(
                   item.createdAt
                 )})`,
