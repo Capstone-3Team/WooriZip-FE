@@ -210,6 +210,7 @@ export default function EditVideoThumbnail() {
             <video
               ref={videoRef}
               src={videoUrl}
+              crossOrigin="anonymous"
               className="w-full h-full object-cover"
               onLoadedMetadata={handleLoadedMetadata}
               onTimeUpdate={handleTimeUpdate}
