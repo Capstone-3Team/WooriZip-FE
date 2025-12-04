@@ -1,0 +1,20 @@
+{
+  "name": "우리.zip",
+  "short_name": "우리.zip",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FFFCF8",
+  "theme_color": "#FDCD46",
+  "icons": [
+    {
+      "src": "/logo/logo-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/logo/logo-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
