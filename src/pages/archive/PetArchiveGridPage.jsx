@@ -6,6 +6,22 @@ import ArchiveFilterDropdown from "@/components/archive/ArchiveFilterDropdown";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const PET_POSTS_URL = `${API_BASE_URL}/post/pet`;
 
+// 반려동물 보관함 즐겨찾기 로컬스토리지 키
+const PET_FAVORITES_KEY = "petArchiveFavorites";
+
+// 로컬스토리지에서 즐겨찾기 ID 목록 로드
+function loadPetFavorites() {
+  try {
+    const raw = localStorage.getItem(PET_FAVORITES_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    console.error("failed to parse pet favorites", e);
+    return [];
+  }
+}
+
 function extractImageUrl(value) {
   if (!value) return null;
 
@@ -98,6 +114,10 @@ export default function PetArchiveGridPage() {
 
         const data = await res.json();
 
+        // 저장된 즐겨찾기 ID 불러와서 Set으로 보관
+        const favoriteIds = loadPetFavorites();
+        const favoriteSet = new Set(favoriteIds);
+
         const mapped = (Array.isArray(data) ? data : [])
           .map((post) => {
             const mediaUrl =
@@ -113,7 +133,8 @@ export default function PetArchiveGridPage() {
               type: detectMediaType(mediaUrl),
               src: mediaUrl,
               dateLabel: formatKoreanDate(post.createdAt),
-              isFavorite: false,
+              // 로컬스토리지에 있으면 즐겨찾기 true
+              isFavorite: favoriteSet.has(post.id),
             };
           })
           .filter(Boolean);
@@ -128,11 +149,20 @@ export default function PetArchiveGridPage() {
   }, []);
 
   const toggleFavorite = (id) => {
-    setItems((prev) =>
-      prev.map((item) =>
+    setItems((prev) => {
+      const updated = prev.map((item) =>
         item.id === id ? { ...item, isFavorite: !item.isFavorite } : item
-      )
-    );
+      );
+
+      // 🔹 즐겨찾기된 아이템들의 id만 저장
+      const favoriteIds = updated
+        .filter((item) => item.isFavorite)
+        .map((item) => item.id);
+
+      localStorage.setItem(PET_FAVORITES_KEY, JSON.stringify(favoriteIds));
+
+      return updated;
+    });
   };
 
   const handleFilterIconClick = () => {
