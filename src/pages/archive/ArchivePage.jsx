@@ -45,13 +45,17 @@ function ArchivePage() {
 
     const fetchArchiveAndFamily = async () => {
       try {
-        // 🔹 /archive/main + /mypage/family-profile 동시에 호출
-        const [archiveRes, familyRes] = await Promise.all([
+        // 🔹 /archive/main + /mypage/family-profile + /post/pet/archive 동시에 호출
+        const [archiveRes, familyRes, petArchiveRes] = await Promise.all([
           fetch(`${API_BASE_URL}/archive/main`, {
             method: "GET",
             headers: commonHeaders,
           }),
           fetch(`${API_BASE_URL}/mypage/family-profile`, {
+            method: "GET",
+            headers: commonHeaders,
+          }),
+          fetch(`${API_BASE_URL}/post/pet/archive`, {
             method: "GET",
             headers: commonHeaders,
           }),
@@ -63,9 +67,13 @@ function ArchivePage() {
         if (!familyRes.ok) {
           throw new Error("failed to fetch /mypage/family-profile");
         }
+        if (!petArchiveRes.ok) {
+          throw new Error("failed to fetch /post/pet/archive");
+        }
 
         const archive = await archiveRes.json(); // { daily, member, pet }
         const family = await familyRes.json(); // { leader, members, ... }
+        const petArchive = await petArchiveRes.json(); // 일상+영상 통합 반려동물 기록 배열
 
         // ======================
         // 1) 일상 기록 보관함 프리뷰
@@ -146,17 +154,33 @@ function ArchivePage() {
 
         // ======================
         // 3) 반려동물과의 추억 보관함 프리뷰
+        // /post/pet/archive(일상+영상 통합) 기준으로 최신 3개
         // ======================
-        const pet = (archive.pet || []).slice(0, 3).map((item) => ({
-          thumbnailUrl:
-            item.thumbnailUrl || item.url || "/images/fallback-thumbnail.png",
-          alt:
-            (item.nickname &&
-              `${item.nickname}와(과) 함께한 추억 (${formatKoreanDate(
-                item.createdAt
-              )})`) ||
-            `반려동물과의 추억 (${formatKoreanDate(item.createdAt)})`,
-        }));
+        // /post/pet/archive 응답이 { images: [...], shorts: [...] } 형태
+        const imageItems = Array.isArray(petArchive.images)
+          ? petArchive.images
+          : [];
+        const shortItems = Array.isArray(petArchive.shorts)
+          ? petArchive.shorts
+          : [];
+
+        // 일단 둘 다 합쳐서 최신 기준으로 정렬
+        const merged = [...imageItems, ...shortItems].sort(
+          (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+        );
+
+        // 상위 3개만 프리뷰
+        const pet = merged.slice(0, 3).map((item) => {
+          const thumbnailUrl =
+            item.mediaUrl ||
+            item.thumbnailUrl ||
+            "/images/fallback-thumbnail.png";
+
+          const alt = `반려동물과의 추억 (${formatKoreanDate(item.createdAt)})`;
+
+          return { thumbnailUrl, alt };
+        });
+
         setPetPreviews(pet);
       } catch (e) {
         console.error(e);

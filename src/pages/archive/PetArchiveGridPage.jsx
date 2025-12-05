@@ -118,10 +118,20 @@ export default function PetArchiveGridPage() {
         const favoriteIds = loadPetFavorites();
         const favoriteSet = new Set(favoriteIds);
 
-        const mapped = (Array.isArray(data) ? data : [])
+        // ✅ /post/pet/archive 응답: { images: [...], shorts: [...] }
+        const imageItems = Array.isArray(data.images) ? data.images : [];
+        const shortItems = Array.isArray(data.shorts) ? data.shorts : [];
+
+        // 일상 + 영상답변(쇼츠) 다 합쳐서 최신순 정렬
+        const rawPosts = [...imageItems, ...shortItems].sort(
+          (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+        );
+
+        const mapped = rawPosts
           .map((post) => {
             const mediaUrl =
               extractImageUrl(post.mediaUrl) ||
+              extractImageUrl(post.thumbnailUrl) || // 쇼츠 썸네일 같은 거 대비
               (Array.isArray(post.mediaUrls)
                 ? extractImageUrl(post.mediaUrls[0])
                 : null);
@@ -130,10 +140,9 @@ export default function PetArchiveGridPage() {
 
             return {
               id: post.id,
-              type: detectMediaType(mediaUrl),
+              type: detectMediaType(mediaUrl), // JPG → image, MOV/MP4 → video
               src: mediaUrl,
               dateLabel: formatKoreanDate(post.createdAt),
-              // 로컬스토리지에 있으면 즐겨찾기 true
               isFavorite: favoriteSet.has(post.id),
             };
           })
