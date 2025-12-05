@@ -38,6 +38,9 @@
   /* 앱 전체 배경 */
   --color-bg-app: #fffcf8;
 
+  /* 하단 바 색상 */
+  --color-bottom: #eeece9;
+
   /* 메인 노랑 */
   --color-yellow-main: #fdcd46;
   --color-yellow-60: #fedf86;
