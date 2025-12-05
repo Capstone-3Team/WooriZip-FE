@@ -4,7 +4,7 @@ import Header from "@/layouts/Header";
 import ArchiveFilterDropdown from "@/components/archive/ArchiveFilterDropdown";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-const PET_POSTS_URL = `${API_BASE_URL}/post/pet`;
+const PET_POSTS_URL = `${API_BASE_URL}/post/pet/archive`;
 
 // 반려동물 보관함 즐겨찾기 로컬스토리지 키
 const PET_FAVORITES_KEY = "petArchiveFavorites";
@@ -110,7 +110,7 @@ export default function PetArchiveGridPage() {
           },
         });
 
-        if (!res.ok) throw new Error("failed to fetch /post/pet");
+        if (!res.ok) throw new Error("failed to fetch /post/pet/archive");
 
         const data = await res.json();
 
