@@ -1,38 +1,84 @@
-# WooriZip Frontend
+# 우리zip — 가족 아카이빙 서비스
 
-가족 아카이빙 서비스 **WooriZip**의 프론트엔드 레포지토리입니다.
-Vite + React + JavaScript + Tailwind CSS를 기반으로 개발합니다.
+떨어져 사는 가족이 일상을 영상으로 기록하고 함께 나누는 서비스입니다.  
+매주 주어지는 질문에 가족들이 짧은 영상으로 답하면, 그 기록이 자동으로 정리되어 쌓입니다.
 
-## Getting Started
+> 2025 창의설계경진대회 **대상(1등)** 수상  
+> 프론트엔드 단독 담당 — Figma 디자인부터 구현, 백엔드·AI 서버 연동, 배포까지
+
+---
+
+## 스크린샷
+
+<!-- 스크린샷 추가 예정 -->
+
+---
+
+## 주요 기능
+
+| 기능 | 설명 |
+|------|------|
+| 주차별 질문 답변 | 매주 새로운 질문에 영상으로 답하고, 가족의 답변을 모아서 확인 |
+| 영상 촬영 | 브라우저에서 직접 촬영, AI 서버 기반 실시간 얼굴 정렬 안내 |
+| 일상 기록 | 사진·영상을 업로드해 가족과 일상 공유 |
+| 아카이브 | 구성원별·반려동물별·일상 기록을 보관함 형태로 탐색 |
+| 쪽지함 | 가족 구성원 간 1:1 쪽지 발송 |
+| 접근성 | 고령 사용자를 위한 TTS(질문 읽기·촬영 안내) 및 글자 크기 조절 |
+
+---
+
+## 기술 스택
+
+| 구분 | 사용 기술 |
+|------|-----------|
+| Framework | React 19 |
+| Routing | React Router v7 |
+| Styling | Tailwind CSS v4 |
+| Build | Vite |
+| 외부 API | 백엔드 REST API, AI 서버(얼굴 정렬), 카카오 소셜 로그인 |
+
+---
+
+## 핵심 구현
+
+**실시간 영상 촬영 + AI 얼굴 정렬 파이프라인**  
+`MediaDevices.getUserMedia()` → `MediaRecorder` → `Canvas` 프레임 캡처 → AI 서버 폴링(450ms)을 조합해 브라우저에서 직접 동작하는 촬영 플로우를 구현했습니다. 요청이 쌓이지 않도록 `analyzing` 플래그로 backpressure를 처리하고, 언마운트 시 `cancelled` 플래그로 루프를 정리해 메모리 누수를 방지합니다.
+
+**초기 로딩 병렬 API 요청**  
+메인 화면 진입 시 필요한 답변 목록과 가족 프로필을 `Promise.all`로 동시에 요청해 순차 호출 대비 대기 시간을 단축했습니다.
+
+---
+
+## 프로젝트 구조
+
+```
+src/
+  apis/           # API 호출 함수
+  components/     # 재사용 UI 컴포넌트
+  hooks/          # 커스텀 훅
+  layouts/        # 공통 레이아웃 (헤더, 하단 네비게이션)
+  pages/
+    signup/       # 회원가입 플로우
+    week-answer/  # 주차별 질문·영상 답변
+    daily/        # 일상 기록
+    archive/      # 아카이브
+    messages/     # 쪽지함
+    mypage/       # 마이페이지·설정
+  utils/          # 유틸 함수
+```
+
+---
+
+## 로컬 실행
 
 ```bash
 # 의존성 설치
 npm install
 
+# 환경 변수 설정
+cp .env.example .env.local
+# .env.local에 백엔드·AI 서버 주소와 카카오 키를 입력하세요
+
 # 개발 서버 실행
 npm run dev
-
-# 프로덕션 빌드
-npm run build
 ```
-
-## Project Structure (초기)
-
-```bash
-src/
-  assets/         # 이미지, 아이콘 등 정적 리소스
-  components/     # 재사용 가능한 UI 컴포넌트
-  hooks/          # 커스텀 훅
-  layouts/        # 공통 레이아웃 (헤더/푸터 등)
-  pages/          # 라우팅 단위 페이지
-  styles/         # 전역 스타일 (Tailwind entry)
-  utils/          # 유틸 함수, 상수
-```
-
-## Tech Stack
-
-- Build Tool: Vite
-
-- Frontend: React, JavaScript
-
-- Styling: Tailwind CSS v4 (configless)
